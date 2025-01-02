@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:raceapi="http://www.mulesoft.org/schema/mule/raceapi"
+	xmlns:if-prof="http://www.mulesoft.org/schema/mule/if-prof" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:graphql-router="http://www.mulesoft.org/schema/mule/graphql-router" xmlns:if-euxp="http://www.mulesoft.org/schema/mule/if-euxp" xmlns:if-eps="http://www.mulesoft.org/schema/mule/if-eps" xmlns:if-prof-015="http://www.mulesoft.org/schema/mule/if-prof-015" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/if-prof http://www.mulesoft.org/schema/mule/if-prof/current/mule-if-prof.xsd
+http://www.mulesoft.org/schema/mule/if-eps http://www.mulesoft.org/schema/mule/if-eps/current/mule-if-eps.xsd
+http://www.mulesoft.org/schema/mule/if-euxp http://www.mulesoft.org/schema/mule/if-euxp/current/mule-if-euxp.xsd
+http://www.mulesoft.org/schema/mule/graphql-router http://www.mulesoft.org/schema/mule/graphql-router/current/mule-graphql-router.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/raceapi http://www.mulesoft.org/schema/mule/raceapi/current/mule-raceapi.xsd">
+	<http:listener-config name="HTTP_Domain_Listener_config" doc:name="HTTP Listener config" doc:id="5c156aef-6a89-4091-9029-5097e04fc962" >
+		<http:listener-connection host="0.0.0.0" port="${http.listener.port}"/>
+	</http:listener-config>
+  <configuration-properties file="${env}-properties.properties" />
+  <global-property name="env" value="prod" />
+	<global-property doc:name="Global Property" doc:id="9775d46d-ba29-47cb-a1f9-0edb204ef45e" name="api.id" value="20039271" />
+  <global-property name="cache.ttl.euxp030" value="1" />
+  <global-property name="cache.ttl.euxp" value="1" />
+  <global-property name="cache.ttl.profeps" value="1" />
+  <!-- <global-property name="cache.ttl.max.unit" value="HOURS" /> -->
+  <!-- <global-property name="cache.ttl.min.unit" value="MILLISECONDS" /> -->
+  <!-- <global-property name="cache.ttl.min.unit" value="SECONDS" /> -->
+  <!-- <global-property name="cache.ttl.profeps.unit" value="MINUTES" /> -->
+  <global-property name="graphql.query.complecity" value="200" />
+	<if-prof:config name="IF_PROF_015_Config" doc:name="IF-PROF-015 Config" doc:id="70bad3b7-de00-4175-bd30-90c371659ce8" property_responseTimeout="${ifprof.responsetimeout}" property_host="${ifprof.host}" property_port="${ifprof.port}" property_basePath="${ifprof.path}" property_protocol="${ifprof.protocol}" />
+	<if-eps:config name="IF_EPS_Config" doc:name="IF-EPS Config" doc:id="1a2c5a23-5327-46ab-bbf3-23f6efa164cc" property_responseTimeout="${ifeps.responsetimeout}" property_host="${ifeps.host}" property_port="${ifeps.port}" property_basePath="${ifeps.path}" property_protocol="${ifeps.protocol}" />
+	<if-euxp:config name="IF_EUXP_Config" doc:name="IF-EUXP Config" doc:id="f29f45fb-26d3-4faa-982b-e5a74cd7c342" property_responseTimeout="${ifeuxp.responsetimeout}" property_host="${ifeuxp.host}" property_port="${ifeuxp.port}" property_basePath="${ifeuxp.path}" property_protocol="${ifeuxp.protocol}" />
+	<if-euxp:config name="IF_EUXP1_Config" doc:name="IF-EUXP Config" doc:id="7fc811e7-5ab4-4f57-ad3e-0178bc891c0f" property_responseTimeout="${ifeuxp1.responsetimeout}" property_host="${ifeuxp1.host}" property_port="${ifeuxp1.port}" property_basePath="${ifeuxp1.path}" property_protocol="${ifeuxp1.protocol}" />
+	<if-euxp:config name="IF_EUXP2_Config" doc:name="IF-EUXP Config" doc:id="3443457b-a6f2-453d-a55f-0845b7f18c92" property_responseTimeout="${ifeuxp2.responsetimeout}" property_host="${ifeuxp2.host}" property_port="${ifeuxp2.port}" property_basePath="${ifeuxp2.path}" property_protocol="${ifeuxp2.protocol}" />
+	<if-euxp:config name="IF_EUXP3_Config" doc:name="IF-EUXP Config" doc:id="56022e8f-5737-440e-9ccd-f592b80182ce" property_responseTimeout="${ifeuxp3.responsetimeout}" property_host="${ifeuxp3.host}" property_port="${ifeuxp3.port}" property_basePath="${ifeuxp3.path}" property_protocol="${ifeuxp3.protocol}" />
+	<if-euxp:config name="IF_EUXP4_Config" doc:name="IF-EUXP Config" doc:id="d7c5b1a5-5c0a-4bd9-9c27-c972c854cea6" property_responseTimeout="${ifeuxp1.responsetimeout}" property_host="${ifeuxp1.host}" property_port="${ifeuxp1.port}" property_basePath="${ifeuxp1.path}" property_protocol="${ifeuxp1.protocol}" />
+	<if-euxp:config name="IF_EUXP5_Config" doc:name="IF-EUXP Config" doc:id="fc0be8ef-aaf9-4b2e-b767-be92cc95f461" property_responseTimeout="${ifeuxp2.responsetimeout}" property_host="${ifeuxp2.host}" property_port="${ifeuxp2.port}" property_basePath="${ifeuxp2.path}" property_protocol="${ifeuxp2.protocol}" />
+	<if-euxp:config name="IF_EUXP6_Config" doc:name="IF-EUXP Config" doc:id="8c0dcfbd-ff62-4f1a-bd9b-ce77c4309e0f" property_responseTimeout="${ifeuxp3.responsetimeout}" property_host="${ifeuxp3.host}" property_port="${ifeuxp3.port}" property_basePath="${ifeuxp3.path}" property_protocol="${ifeuxp3.protocol}" />
+	<raceapi:config name="RACE_API_Config" doc:name="RACE API Config" doc:id="1690d5a1-a5fd-4dff-b8a9-00d7456575b6" property_responseTimeout="${ifrace.responsetimeout}" property_host="${ifrace.host}" property_port="${ifrace.port}" property_basePath="${ifrace.path}" property_protocol="${ifrace.protocol}" />
+	<graphql-router:config name="GraphQL_Router_Config" doc:name="GraphQL Router Config" doc:id="a842601b-f01e-47b6-b80f-2daf1f388212" api="graphql/if-grapgql.graphql" introspectionEnabled="true" maxQueryComplexityAllowed="${graphql.query.complecity}"/>
+	<api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="642c66a8-51d1-4253-99b2-400409272534" flowRef="Main-Flow" />
+
+</mule>

@@ -1,0 +1,2265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:raceapi="http://www.mulesoft.org/schema/mule/raceapi" xmlns:if-prof="http://www.mulesoft.org/schema/mule/if-prof"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:if-euxp="http://www.mulesoft.org/schema/mule/if-euxp" xmlns:if-eps="http://www.mulesoft.org/schema/mule/if-eps" xmlns:if-prof-015="http://www.mulesoft.org/schema/mule/if-prof-015" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:graphql-router="http://www.mulesoft.org/schema/mule/graphql-router" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/graphql-router http://www.mulesoft.org/schema/mule/graphql-router/current/mule-graphql-router.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/if-prof http://www.mulesoft.org/schema/mule/if-prof/current/mule-if-prof.xsd
+http://www.mulesoft.org/schema/mule/if-eps http://www.mulesoft.org/schema/mule/if-eps/current/mule-if-eps.xsd
+http://www.mulesoft.org/schema/mule/if-euxp http://www.mulesoft.org/schema/mule/if-euxp/current/mule-if-euxp.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/raceapi http://www.mulesoft.org/schema/mule/raceapi/current/mule-raceapi.xsd">
+	<flow name="Main-Flow" doc:id="aa5e9045-b9c0-42df-b1ad-c8a9c5e8b555">
+		<http:listener doc:name="Listener" doc:id="3bce4ca4-c3eb-43e3-a4e2-17fa09441827" config-ref="HTTP_Domain_Listener_config" path="${http.listener.path}">
+			<http:response >
+				<http:headers ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	"mule_response" : now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"}
+}]]]></http:headers>
+			</http:response>
+			<http:error-response statusCode="503" reasonPhrase="Service Unavailable - Backend error"/>
+		</http:listener>
+		<graphql-router:route doc:name="Route" doc:id="4a4628ec-62eb-4021-b227-3fac3e3385c7" config-ref="GraphQL_Router_Config">
+			<graphql-router:context-values >
+				<graphql-router:context-value key="headers" value="#[attributes.headers]" />
+				<graphql-router:context-value key="queryParams" value="#[attributes.queryParams]" />
+			</graphql-router:context-values>
+		</graphql-router:route>
+	</flow>
+  <flow name="console" doc:id="89e13219-3c6a-41e0-8e0b-0f9fcc32b2cf" >
+		<http:listener doc:name="Listener" doc:id="1240f027-fd47-4e5a-ae89-3b574774de10" config-ref="HTTP_Domain_Listener_config" path="/console/*"/>
+		<parse-template doc:name="Parse Template" doc:id="a1c79dbf-24c4-463b-b848-6ec4ff338238" location="index.html" targetValue="#[payload]"/>
+	</flow>
+	<flow name="Query.getAllData" doc:id="73675fda-ee64-4f1e-98f2-f76bd9f57904">
+		<graphql-router:data-fetcher objectTypeName="Query" doc:name="Data fetcher" doc:id="917d347d-890b-46a7-a42a-49dab892b5ae" config-ref="GraphQL_Router_Config" fieldName="getHomeAllData">
+			<non-repeatable-stream />
+		</graphql-router:data-fetcher>
+		<ee:transform doc:name="Transform Message" doc:id="3024ba1a-97e5-4486-910b-6ba8f8158533" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="params" ><![CDATA[%dw 2.0
+output application/java
+---
+
+{ 
+	headers: attributes.context.headers,
+	arguments: attributes.arguments
+}]]></ee:set-variable>
+				<ee:set-variable variableName="startTime" ><![CDATA[%dw 2.0
+output application/java
+---
+now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="8280191f-7a90-4356-9fce-ee5e1e173989">
+			<route >
+				<!-- <ee:cache doc:name="PROF-015-Cache" doc:id="aa18c0ec-6ad7-497c-bb92-9fcaa96d025d" cachingStrategy-ref="PROF_015_Caching_Strategy"> -->
+					<if-prof:if-prof-015 doc:name="IF-PROF-015" doc:id="fa304d1a-a584-444d-a116-d6f60a9178cc" config-ref="IF_PROF_015_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" stb-id="#[attributes.arguments.stb_id]" request-streaming-mode="NEVER"/>
+				<!-- </ee:cache> -->
+<!-- 				<ee:transform doc:name="set Profile" doc:id="5ac0aa21-e90d-4a25-9fc3-ef8290bd749d" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="profile" ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+payload]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+ -->
+				<logger level="DEBUG" doc:name="Logger" doc:id="4e0465e4-dd11-482b-89cb-d5e0f0eeacea" message="IF-PROF-015"/>			
+</route>
+			<route >
+				<!-- <ee:cache doc:name="EPS-401-Cache" doc:id="da40ca8b-38a0-46a2-b20e-d13e89ceae30" cachingStrategy-ref="EPS_401_Caching_Strategy"> -->
+					<choice doc:name="Choice" doc:id="4882d7e6-fc59-464a-8e49-8a12ce639b25" >
+					<when expression="#[attributes.arguments.eps_yn == 'Y']">
+						<if-eps:if-eps-401 doc:name="IF-EPS-401" doc:id="03f90013-1cb3-45fe-b914-0c6d282bf941" config-ref="IF_EPS_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" ui-name="#[attributes.arguments.ui_name]" mac="#[attributes.arguments.mac]" stb-id="#[attributes.arguments.stb_id]" client-name="#[attributes.arguments.client_name]" response-format="#[attributes.arguments.response_format]" request-streaming-mode="NEVER" />
+						<logger level="DEBUG" doc:name="Logger" doc:id="ed8fc2eb-b633-4f07-bb29-76aac3a779f0" message="EPS-401" />
+					</when>
+					<otherwise >
+						<ee:transform doc:name="Transform Message" doc:id="ccd31661-5a6c-4960-a6c6-3e2bc47a5a92" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+				<!-- </ee:cache> -->
+<!-- 				<ee:transform doc:name="set Coupon" doc:id="61cb294e-fb3b-4b7c-a0c3-50abd4cacbbf" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="coupon" ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+payload]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+ -->			
+</route>
+			<route >
+				<!-- <ee:cache doc:name="EPS-751-Cache" doc:id="2d892d99-6d4d-42c3-86e8-cfcd5f2a6c99" cachingStrategy-ref="EPS_751_Caching_Strategy"> -->
+					<choice doc:name="Choice" doc:id="84155568-1520-4812-9dab-3f5a2d31279e" >
+					<when expression="#[attributes.arguments.eps_yn == 'Y']">
+						<if-eps:if-eps-751 doc:name="IF-EPS-751" doc:id="5fe73fea-2946-4c86-ab94-a42a32c3bf72" config-ref="IF_EPS_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" ver="#[attributes.arguments.ver]" ui-name="#[attributes.arguments.ui_name]" mac="#[attributes.arguments.mac]" stb-id="#[attributes.arguments.stb_id]" client-name="#[attributes.arguments.client_name]" response-format="#[attributes.arguments.response_format]" request-streaming-mode="NEVER" />
+						<logger level="DEBUG" doc:name="Logger" doc:id="3d1d90b9-ab93-47f5-ace9-65f6335aebcb" message="EPS-751" />
+					</when>
+					<otherwise >
+						<ee:transform doc:name="Transform Message" doc:id="e0b9e55f-6413-4cee-bb48-cfaacf670b12" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+				<!-- </ee:cache> -->
+<!-- 				<ee:transform doc:name="set Point" doc:id="de47941e-8b9b-4b61-baa4-636fcce614bd" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="point" ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+payload]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+ -->			
+</route>
+			<route >
+				<!-- <ee:cache doc:name="EUXP-030-Cache" doc:id="3c64dbd4-d9bd-449b-b7c9-a092712c5a47" cachingStrategy-ref="EUXP_030_Caching_Strategy"> -->
+					<if-euxp:if-euxp-030 doc:name="IF-EUXP-030" doc:id="9bc65cef-a79c-4c34-b3fe-1d2fa25dbcb8" config-ref="IF_EUXP_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" app-typ-cd="#[attributes.arguments.app_typ_cd]" inspect-yn="#[attributes.arguments.inspect_yn]" scrbr-typ-cd="#[1]" menu-stb-svc-id="#[attributes.arguments.menu_stb_svc_id]" version="#[attributes.arguments.version]" stb-id="#[attributes.arguments.stb_id]" seg-id='#[""]' request-streaming-mode="NEVER"/>
+				<!-- </ee:cache> -->
+<!-- 				<ee:transform doc:name="Transform Message" doc:id="1c51a566-8496-40e3-a575-346f3d82acc2" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="gnbinfo" ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+payload]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+ -->
+				<logger level="DEBUG" doc:name="Logger" doc:id="fe7ebd34-5fc6-4030-8cf6-5efdfcc3bf1d" message="EUXP-030"/>			
+</route>
+		</scatter-gather>
+		<parallel-foreach doc:name="Parallel For Each" doc:id="22b62caa-3478-4cf4-a9dd-af2b105e666e" collection='#[payload."3".payload.gnbs]' target="subcollection1">
+<!--			<ee:transform doc:name="Transform Message" doc:id="208c140a-7da7-46d1-b474-1fef6166c41a" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+{
+	menu_id: payload.menu_id
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+ 			<flow-ref doc:name="Sub Block Call" doc:id="c8139ac0-a5dd-474f-9fb8-bc855b981793" name="Subblock-call-Flow" target="subcollections"/>
+ -->
+		<!-- <ee:cache doc:name="SubcollectionCache" doc:id="691a64df-712d-4fa7-acac-c42dbe4232e6" cachingStrategy-ref="SubCollections_Caching_Strategy"> -->
+			<if-euxp:if-euxp-003 doc:name="IF-EUXP-003" doc:id="d9f4e323-5bbb-4d26-8e11-718851cb1fc7" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP2_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" scrbr-typ-cd="#[vars.params.arguments.scrbr_typ_cd]" request-streaming-mode="NEVER"/>
+		<!-- </ee:cache> -->
+
+
+<!-- 		<ee:transform doc:name="set var firstblock" doc:id="dc8380c9-19a4-45b2-96f4-dda33358e6ae" >
+			<ee:message >
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="firstblock" ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+payload]]></ee:set-variable >
+		</ee:variables>
+		</ee:transform>
+ -->		<logger level="DEBUG" doc:name="Logger" doc:id="0e3672f2-069f-4ad6-a97c-4f41708a5e69" message="EUXP-003"/>
+			<choice doc:name="Choice" doc:id="61becbbe-66d0-4825-8dd6-79abbf6d17d4" >
+<!--			<when expression="#[((vars.params.arguments.view_type == &quot;HOME&quot;) and (vars.firstblock.menu_id != 'NM2000118615')) or (vars.firstblock.result != '0000')]">
+ 				<ee:transform doc:name="Transform Message" doc:id="57a4d9fb-847d-4144-80e8-10ca2d83e052" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+vars.firstblock]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+</when>
+ -->
+			<when expression="#[(((vars.params.arguments.view_type == 'HOME') and ((payload.menu_id == 'NM2000118615')or (payload.menu_id == 'NM2000000265'))) or vars.params.arguments.view_type == 'ALL') and (payload.result == '0000')]">
+<!-- 				<otherwise >
+ -->				<parallel-foreach doc:name="Parallel For Each" doc:id="9e7eba78-b82c-4452-84fd-913626a45451" collection="#[%dw 2.0&#10;output application/java&#10;---&#10;//((vars.firstblock.blocks filter (($.blk_typ_cd == '20') and ($.scn_mthd_cd ==''))) filter $$ &lt; vars.params.arguments.view_count as Number) ++&#10;//((vars.firstblock.blocks filter (($.blk_typ_cd == '70'))) filter $$ &lt; vars.params.arguments.view_count as Number)  ++&#10;//((vars.firstblock.blocks filter (($.blk_typ_cd == '20') and (($.scn_mthd_cd =='501') or ($.scn_mthd_cd =='507') or ($.scn_mthd_cd =='538') or ($.scn_mthd_cd =='539')))) filter $$ &lt; vars.params.arguments.view_count as Number)  ++&#10;//((vars.firstblock.blocks filter (($.blk_typ_cd == '30') )) filter $$ &lt; vars.params.arguments.view_count as Number)&#10;((payload.blocks filter (($.blk_typ_cd == '20') and ($.scn_mthd_cd ==''))) filter $$ &lt; vars.params.arguments.view_count as Number) ++&#10;((payload.blocks filter (($.blk_typ_cd == '70'))) filter $$ &lt; vars.params.arguments.view_count as Number)  ++&#10;((payload.blocks filter (($.blk_typ_cd == '20') and (($.scn_mthd_cd =='501') or ($.scn_mthd_cd =='507') or ($.scn_mthd_cd =='538') or ($.scn_mthd_cd =='539')))) filter $$ &lt; vars.params.arguments.view_count as Number)  ++&#10;((payload.blocks filter (($.blk_typ_cd == '30') )) filter $$ &lt; vars.params.arguments.view_count as Number)]" target="subcollection2">
+						<choice doc:name="Choice" doc:id="c1d71ce4-150c-42ad-8a6e-143ba583c244">
+							<when expression="(payload.blk_typ_cd == '20') and (payload.scn_mthd_cd =='')  ">
+								<!-- <ee:cache doc:name="EUXP-003-Cache" doc:id="27ccfbcc-64e1-4103-bfcc-f504a7fb2098" cachingStrategy-ref="EUXP_003_Caching_Strategy"> -->
+								<if-euxp:if-euxp-003 doc:name="IF-EUXP-003" doc:id="2bceb115-1d6d-4241-8c9d-75ca3c1a3d54" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP3_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" request-streaming-mode="NEVER"/>
+								<ee:transform doc:name="Transform Message" doc:id="86aaceaf-49ec-4650-9be9-816932abde38">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	block:payload
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<!-- </ee:cache> -->
+								<logger level="DEBUG" doc:name="Logger" doc:id="d4b38053-5882-49f3-9738-90481cd42a27" message="EUXP-003"/>
+							
+</when>
+							<when expression="(payload.blk_typ_cd == '70')">
+								<!-- <ee:cache doc:name="EUXP-007-Cache" doc:id="52c805d1-de53-4021-93fd-f5bbb8b05672" cachingStrategy-ref="EUXP_007_Caching_Strategy"> -->
+								<if-euxp:if-euxp-007 doc:name="IF-EUXP-007" doc:id="2c11049e-9eb6-442e-a81b-9491b73508b5" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP3_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" seg-id="#[vars.params.arguments.seg_id]" version="#[vars.params.arguments.version]" scrbr-typ-cd="#[vars.params.arguments.scrbr_typ_cd]" request-streaming-mode="NEVER"/>
+								<ee:transform doc:name="Transform Message" doc:id="5ccf1c00-b69d-4683-a50c-b39e649c3411">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	eventBlock:payload
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<!-- </ee:cache> -->
+								<logger level="DEBUG" doc:name="Logger" doc:id="7c8edbba-2027-40a8-abe4-8852f4a66aca" message="EUXP-007"/>
+								
+							
+</when>
+							<when expression="(payload.blk_typ_cd == '20') and ((payload.scn_mthd_cd =='501') or (payload.scn_mthd_cd =='507') or (payload.scn_mthd_cd =='538') or (payload.scn_mthd_cd =='539')) ">
+								<!-- <ee:cache doc:name="EUXP-009-Cache" doc:id="c22f52dc-8d5b-4228-bd0a-ec0aaf943207" cachingStrategy-ref="EUXP_009_Caching_Strategy"> -->
+								<if-euxp:if-euxp-009 doc:name="IF-EUXP-009" doc:id="857ca2eb-fd01-4a6a-a2df-daf177ca86a3" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP3_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" cw-call-id="#[payload.cw_call_id_val]" version="#[vars.params.arguments.version]" btv-profile-id="#[vars.profile.profile.profile_id]" item="#['']" target="tempRaceGrid" request-streaming-mode="NEVER"/>
+								<ee:transform doc:name="Transform Message" doc:id="d36c4e79-d5f5-495c-9799-2118b86233cc">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	raceGrid:vars.tempRaceGrid ++ {menu_id:payload.menu_id, menu_nm:payload.menu_nm }
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<!-- </ee:cache> -->
+								<logger level="DEBUG" doc:name="Logger" doc:id="4e01995f-ecf3-4b2e-99ab-fa4041c94e31" message="EUXP-009"/>
+							
+</when>
+							<when expression="(payload.blk_typ_cd == '30') ">
+								<!-- <ee:cache doc:name="EUXP-024-Cache" doc:id="ea9fe74b-9a19-4c59-997c-e27d6751dd80" cachingStrategy-ref="EUXP_024_Caching_Strategy"> -->
+								<if-euxp:if-euxp-024 doc:name="IF-EUXP-024" doc:id="4de35b45-c292-49ee-ab02-12f2883aea19" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP3_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" version="#[vars.params.arguments.version]" sort-typ-cd="#['']" target="tempContentsGrid" page-no="#[vars.params.arguments.page_no as Number]" page-cnt="#[vars.params.arguments.page_count as Number]" request-streaming-mode="NEVER"/>
+								<ee:transform doc:name="Transform Message" doc:id="b76f0452-6e62-432d-8ccc-75d9dba753f2">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	contentsGrid:vars.tempContentsGrid ++ { menu_nm:payload.menu_nm }
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<!-- </ee:cache> -->
+								<logger level="DEBUG" doc:name="Logger" doc:id="63ed485a-d886-4b24-a5ea-a3c404b4664f" message="EUXP-024"/>
+							
+</when>
+						</choice>
+					</parallel-foreach>
+				<ee:transform doc:name="set payload" doc:id="7ebbf74d-f891-4732-bd1e-fa5662ceac85">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+//vars.firstblock ++
+payload ++
+//{
+//	subBlocks: (vars.subcollection2 map ((item , index) -> item.payload) filter ($.block != null and $.block.menu_id != null)) .block,
+//	eventBlocks:(vars.subcollection2 map ((item , index) -> item.payload) filter $.eventBlock != null).eventBlock,
+//	raceGrids:(vars.subcollection2 map ((item , index) -> item.payload) filter $.raceGrid != null).raceGrid,
+//	contentsGrids:(vars.subcollection2 map ((item , index) -> item.payload) filter $.contentsGrid != null).contentsGrid
+//}
+
+//{
+//	subBlocks: (vars.subcollection2.payload filter ($.block != null and $.block.menu_id != null)) .block,
+//	eventBlocks:(vars.subcollection2.payload filter $.eventBlock != null).eventBlock,
+//	raceGrids:(vars.subcollection2.payload filter $.raceGrid != null).raceGrid,
+//	contentsGrids:(vars.subcollection2.payload filter $.contentsGrid != null).contentsGrid
+//}
+
+{
+	subBlocks: vars.subcollection2.payload.block,
+	eventBlocks:vars.subcollection2.payload.eventBlock,
+	raceGrids:vars.subcollection2.payload.raceGrid,
+	contentsGrids:vars.subcollection2.payload .contentsGrid
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+</when>
+<!-- </otherwise>
+ -->		</choice>
+		</parallel-foreach>
+		<ee:transform doc:name="Transform Message" doc:id="823a16c3-ec55-4e4e-af65-169328c66a33" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	mule_reason: '성공',
+	mule_request_time: vars.startTime,
+	mule_response_time: now() as LocalDateTime  as String {
+		format:"uuuuMMddHHmmssSSS"
+	},
+	mule_result: '0000',
+	profile: payload."0".payload,
+	coupon: payload."1".payload,
+	point: payload."2".payload,
+	gnbInfo:  payload."3".payload,
+	blocks: vars.subcollection1.payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<graphql-router:serialize objectTypeName="Query" doc:name="Serialize" doc:id="5391f22b-0437-426e-b80b-fd3b14390fb9" config-ref="GraphQL_Router_Config" fieldName="getHomeAllData"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8b572234-4fc2-44ac-bc96-a646209ed4dc" >
+				<logger level="ERROR" doc:name="Logger" doc:id="1197b10d-c9a2-4d78-9c0b-b5eb667c6f4f" message="#['Query.getAllData Error' ++ error.description as String]"/>
+				<ee:transform doc:name="Transform Message" doc:id="c624da02-eb77-4bff-8f9e-c96e13d8e741" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	mule_reason: '실패',
+	mule_request_time: vars.startTime,
+	mule_response_time: now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"},
+	mule_result:'9999'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="Query.getAllData2" doc:id="1db68a0d-c532-4781-b22c-11eec0e95be9" >
+		<graphql-router:data-fetcher doc:name="Data fetcher" doc:id="c3ea3b2b-395a-47c4-94e6-65ecc65e9fe4" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="getHomeAllData2">
+			<non-repeatable-stream />
+		</graphql-router:data-fetcher>
+		<logger level="DEBUG" doc:name="Logger" doc:id="fe7d9574-3264-4548-b9b3-c2a509d0099f" message="Query.getHomeMainData start"/>
+		<ee:transform doc:name="Transform Message" doc:id="18578676-308b-4506-b4b7-02ad90853378" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="params" ><![CDATA[%dw 2.0
+output application/java
+---
+
+{ 
+	headers: attributes.context.headers,
+	arguments: attributes.arguments
+}]]></ee:set-variable>
+				<ee:set-variable variableName="StartTime" ><![CDATA[%dw 2.0
+output application/java
+---
+now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"}]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="35a18dcb-2de1-41cb-879d-0b5159186193">
+			<route >
+				<!-- <ee:cache doc:name="PROF-015-Cache" doc:id="757f3a7f-c2ae-4c15-9c57-c0447bf767a3" cachingStrategy-ref="PROF_015_Caching_Strategy"> -->
+					<if-prof:if-prof-015 doc:name="IF-PROF-015" doc:id="5ce7e4db-8a9e-4b57-b76e-b2e7230471b4" config-ref="IF_PROF_015_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" stb-id="#[attributes.arguments.stb_id]" />
+					<logger level="DEBUG" doc:name="Logger" doc:id="725af60d-0854-40f4-affb-2f77c2e54b71" message="IF-PROF-015 End" />
+				<!-- </ee:cache> -->
+			
+</route>
+			<route >
+				<!-- <ee:cache doc:name="EPS-401-Cache" doc:id="34d9e320-d8ae-4629-a015-6087e5dbacf7" cachingStrategy-ref="EPS_401_Caching_Strategy"> -->
+					<if-eps:if-eps-401 doc:name="IF-EPS-401" doc:id="082f4e7a-892f-41d7-a821-05252b3f4108" config-ref="IF_EPS_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" ui-name="#[attributes.arguments.ui_name]" mac="#[attributes.arguments.mac]" stb-id="#[attributes.arguments.stb_id]" client-name="#[attributes.arguments.client_name]" response-format="#[attributes.arguments.response_format]"/>
+					<logger level="DEBUG" doc:name="Logger" doc:id="85ff843f-d796-4e6e-9ebe-77eacbdd12d3" message="IF-EPS-401 End" />
+				<!-- </ee:cache> -->
+			</route>
+			<route >
+				<!-- <ee:cache doc:name="EPS-751-Cache" doc:id="6f179f0a-43a5-478e-879b-a7d7b433bb6e" cachingStrategy-ref="EPS_751_Caching_Strategy"> -->
+					<if-eps:if-eps-751 doc:name="IF-EPS-751" doc:id="c86ea42d-10f4-4f58-86ad-a262c32012ca" config-ref="IF_EPS_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" ver="#[attributes.arguments.ver]" ui-name="#[attributes.arguments.ui_name]" mac="#[attributes.arguments.mac]" stb-id="#[attributes.arguments.stb_id]" client-name="#[attributes.arguments.client_name]" response-format="#[attributes.arguments.response_format]"/>
+					<logger level="DEBUG" doc:name="Logger" doc:id="31fbca33-e0b9-448f-bb0a-258780dd8dad" message="IF-EPS-751 End" />
+				<!-- </ee:cache> -->
+			</route>
+			<route >
+				<!-- <ee:cache doc:name="EUXP-030-Cache" doc:id="bcc27987-132c-47eb-a31a-2ea0bd069d5d" cachingStrategy-ref="EUXP_030_Caching_Strategy"> -->
+					<if-euxp:if-euxp-030 doc:name="IF-EUXP-030" doc:id="51c57f28-e094-4df2-b505-91304a46d122" config-ref="IF_EUXP_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" app-typ-cd="#[attributes.arguments.app_typ_cd]" inspect-yn="#[attributes.arguments.inspect_yn]" scrbr-typ-cd="#[1]" menu-stb-svc-id="#[attributes.arguments.menu_stb_svc_id]" version="#[attributes.arguments.version]" stb-id="#[attributes.arguments.stb_id]" seg-id='#[""]' />
+					<logger level="DEBUG" doc:name="Logger" doc:id="bb385f27-8074-4796-8c76-5ea4f450fc04" message="IFEUXP-030 end" />
+				<!-- </ee:cache> -->
+			</route>
+		</scatter-gather>
+		<parallel-foreach doc:name="Parallel For Each" doc:id="12e70327-6279-40cd-ae83-999bab7e70d7" collection='#[payload."3".payload.gnbs]' target="subcollection1">
+			<flow-ref doc:name="Flow Reference" doc:id="ed737e29-de30-4db5-b766-2b0073b9a346" name="Subblock-call-Flow"/>
+		</parallel-foreach>
+		<ee:transform doc:name="Transform Message" doc:id="6ec14b18-75cb-47db-bdf1-f7adf3ec4cfb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	mule_reason: '성공',
+	mule_request_time: vars.startTime,
+	mule_response_time: now() as LocalDateTime  as String {
+		format:"uuuuMMddHHmmssSSS"
+	},
+	mule_result: '0000',
+	profile: {
+		elapsed_time: payload."0".payload.elapsed_time,
+		IF: payload."0".payload.IF,
+		profile_id: payload."0".payload.profile.profile_id,
+		profile: {
+			insert_dt: payload."0".payload.profile.insert_dt,
+			lock_password_yn: payload."0".payload.profile.lock_password_yn,
+			lock_use_yn: payload."0".payload.profile.lock_use_yn,
+			pair_count: payload."0".payload.profile.pair_count,
+			profile_id: payload."0".payload.profile.profile_id,
+			profile_img_dim_path: payload."0".payload.profile.profile_img_dim_path,
+			profile_img_path: payload."0".payload.profile.profile_img_path,
+			profile_img_server: payload."0".payload.profile.profile_img_server,
+			profile_img_type: payload."0".payload.profile.profile_img_type,
+			profile_name: payload."0".payload.profile.profile_name,
+			purc_auth_yn: payload."0".payload.profile.purc_auth_yn,
+			reg_device_cd: payload."0".payload.profile.reg_device_cd,
+			self_auth_yn: payload."0".payload.profile.self_auth_yn,
+			stb_active_dt: payload."0".payload.profile.stb_active_dt,
+			stb_active_yn: payload."0".payload.profile.stb_active_yn,
+			stb_default_yn: payload."0".payload.profile.stb_default_yn,
+			stb_id_list: payload."0".payload.profile.stb_id_list map ( stbidlist , indexOfStbidlist ) -> stbidlist,
+			tst_reg_yn: payload."0".payload.profile.tst_reg_yn,
+			update_dt: payload."0".payload.profile.update_dt
+		},
+		reason: payload."0".payload.reason,
+		request_id: payload."0".payload.request_id,
+		response_format: payload."0".payload.response_format,
+		result: payload."0".payload.result,
+		stb_id: payload."0".payload.stb_id
+	},
+	coupon: payload."1".payload,
+	point: payload."2".payload,
+	gnbInfo: payload."3".payload,
+	blocks: vars.subcollection1.payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<graphql-router:serialize doc:name="Serialize" doc:id="24c029f5-ebc9-4426-a648-17499784a9c7" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="getHomeAllData2"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8bb0bb9c-f1a0-4c96-b3a9-2cb30f10bb8f" >
+				<logger level="DEBUG" doc:name="Logger" doc:id="71fdd05d-ead9-41f5-9b3a-f20be25fb187" />
+				<ee:transform doc:name="Transform Message" doc:id="221979e3-eec9-42e5-a064-0d56b36d056e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	mule_reason: '실패',
+	mule_request_time: vars.startTime,
+	mule_response_time: now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"},
+	mule_result:'9999'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="Query.getHomeMainData" doc:id="ccca4784-b3d0-45d1-aa16-24044104b917" >
+		<graphql-router:data-fetcher doc:name="Data fetcher" doc:id="fd904b7f-deba-48f2-9cd2-ad6141b76903" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="getHomeMainData">
+			<non-repeatable-stream />
+		</graphql-router:data-fetcher>
+		<logger level="DEBUG" doc:name="Logger" doc:id="c9ec83e8-169e-4f26-a3a3-56371cf6f4cc" message="Query.getHomeMainData start"/>
+		<ee:transform doc:name="Transform Message" doc:id="d2e20cff-2d29-47db-a1f2-cd19dc2d20d0" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="params" ><![CDATA[%dw 2.0
+output application/java
+---
+
+{ 
+	headers: attributes.context.headers,
+	arguments: attributes.arguments
+}]]></ee:set-variable>
+				<ee:set-variable variableName="StartTime" ><![CDATA[%dw 2.0
+output application/java
+---
+now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"}]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="65590edc-1a36-421b-87e9-856e4918846c">
+			<route >
+				<!-- <ee:cache doc:name="PROF-015-Cache" doc:id="b4d6d6b5-8809-4afd-b8e4-dbd0264f231e" cachingStrategy-ref="PROF_015_Caching_Strategy"> -->
+					<if-prof:if-prof-015 doc:name="IF-PROF-015" doc:id="4a0bae1a-1576-4112-ae77-c80e16c62536" config-ref="IF_PROF_015_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" stb-id="#[attributes.arguments.stb_id]" />
+					<logger level="DEBUG" doc:name="Logger" doc:id="c85b120f-a9c3-4cc2-9ee2-861cb6094d9b" message="IF-PROF-015 End" />
+				<!-- </ee:cache> -->
+			
+</route>
+			<route >
+				<!-- <ee:cache doc:name="EPS-401-Cache" doc:id="7a4cbe12-7901-422b-8c13-e710da3fa848" cachingStrategy-ref="EPS_401_Caching_Strategy"> -->
+					<if-eps:if-eps-401 doc:name="IF-EPS-401" doc:id="b0177976-3ce8-446c-a501-61acd2c462f2" config-ref="IF_EPS_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" ui-name="#[attributes.arguments.ui_name]" mac="#[attributes.arguments.mac]" stb-id="#[attributes.arguments.stb_id]" client-name="#[attributes.arguments.client_name]" response-format="#[attributes.arguments.response_format]"/>
+					<logger level="DEBUG" doc:name="Logger" doc:id="1f2c8211-9fee-49a6-b411-4efe54e83dff" message="IF-EPS-401 End" />
+				<!-- </ee:cache> -->
+			</route>
+			<route >
+				<!-- <ee:cache doc:name="EPS-751-Cache" doc:id="7b700e02-81e0-4f24-a290-e0d0fa46eb7e" cachingStrategy-ref="EPS_751_Caching_Strategy"> -->
+					<if-eps:if-eps-751 doc:name="IF-EPS-751" doc:id="81fade9d-1e27-438e-b679-7d9ef57ce136" config-ref="IF_EPS_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" ver="#[attributes.arguments.ver]" ui-name="#[attributes.arguments.ui_name]" mac="#[attributes.arguments.mac]" stb-id="#[attributes.arguments.stb_id]" client-name="#[attributes.arguments.client_name]" response-format="#[attributes.arguments.response_format]"/>
+					<logger level="DEBUG" doc:name="Logger" doc:id="809d5f8c-94cc-4b8e-85b1-9099df702f23" message="IF-EPS-751 End" />
+				<!-- </ee:cache> -->
+			</route>
+			<route >
+				<!-- <ee:cache doc:name="EUXP-030-Cache" doc:id="521ddfc8-6857-4f56-83c9-8cce62bbefa6" cachingStrategy-ref="EUXP_030_Caching_Strategy"> -->
+					<if-euxp:if-euxp-030 doc:name="IF-EUXP-030" doc:id="2f93bb00-56c2-46e5-b7d1-3ae20838bcfe" config-ref="IF_EUXP_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" app-typ-cd="#[attributes.arguments.app_typ_cd]" inspect-yn="#[attributes.arguments.inspect_yn]" scrbr-typ-cd="#[1]" menu-stb-svc-id="#[attributes.arguments.menu_stb_svc_id]" version="#[attributes.arguments.version]" stb-id="#[attributes.arguments.stb_id]" seg-id='#[""]' />
+					<logger level="DEBUG" doc:name="Logger" doc:id="b8e66f9d-3851-4c3c-a00c-f2b1c3d3aa46" message="IFEUXP-030 end" />
+				<!-- </ee:cache> -->
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="33e2789b-6427-42aa-bb62-2fb748403d65" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	mule_reason: '성공',
+	mule_request_time: vars.startTime,
+	mule_response_time: now() as LocalDateTime  as String {
+		format:"uuuuMMddHHmmssSSS"
+	},
+	mule_result: '0000',
+	profile: {
+		elapsed_time: payload."0".payload.elapsed_time,
+		IF: payload."0".payload.IF,
+		profile_id: payload."0".payload.profile.profile_id,
+		profile: {
+			insert_dt: payload."0".payload.profile.insert_dt,
+			lock_password_yn: payload."0".payload.profile.lock_password_yn,
+			lock_use_yn: payload."0".payload.profile.lock_use_yn,
+			pair_count: payload."0".payload.profile.pair_count,
+			profile_id: payload."0".payload.profile.profile_id,
+			profile_img_dim_path: payload."0".payload.profile.profile_img_dim_path,
+			profile_img_path: payload."0".payload.profile.profile_img_path,
+			profile_img_server: payload."0".payload.profile.profile_img_server,
+			profile_img_type: payload."0".payload.profile.profile_img_type,
+			profile_name: payload."0".payload.profile.profile_name,
+			purc_auth_yn: payload."0".payload.profile.purc_auth_yn,
+			reg_device_cd: payload."0".payload.profile.reg_device_cd,
+			self_auth_yn: payload."0".payload.profile.self_auth_yn,
+			stb_active_dt: payload."0".payload.profile.stb_active_dt,
+			stb_active_yn: payload."0".payload.profile.stb_active_yn,
+			stb_default_yn: payload."0".payload.profile.stb_default_yn,
+			stb_id_list: payload."0".payload.profile.stb_id_list map ( stbidlist , indexOfStbidlist ) -> stbidlist,
+			tst_reg_yn: payload."0".payload.profile.tst_reg_yn,
+			update_dt: payload."0".payload.profile.update_dt
+		},
+		reason: payload."0".payload.reason,
+		request_id: payload."0".payload.request_id,
+		response_format: payload."0".payload.response_format,
+		result: payload."0".payload.result,
+		stb_id: payload."0".payload.stb_id
+	},
+	coupon: payload."1".payload,
+	point: payload."2".payload,
+	gnbInfo: payload."3".payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<graphql-router:serialize doc:name="Serialize" doc:id="493b6294-3e68-4963-a358-1891107fc872" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="getHomeMainData"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8c4193ec-81f0-4d28-9069-3e3ff89f2056" >
+				<logger level="INFO" doc:name="Logger" doc:id="c708cd6c-c4d4-4cd5-bc9c-c336b28952a5" />
+				<ee:transform doc:name="Transform Message" doc:id="98375e14-a7f7-46c5-844d-f38881b092a2" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	mule_reason: '실패',
+	mule_request_time: vars.startTime,
+	mule_response_time: now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"},
+	mule_result:'9999'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="getBlockData-Flow" doc:id="d14ba4f8-08c2-48e6-8eb3-31cd4c86d050">
+		<graphql-router:data-fetcher objectTypeName="Query" doc:name="Data fetcher" doc:id="34b60656-4769-4049-8093-7eb8ed88713b" config-ref="GraphQL_Router_Config" fieldName="getBlockData" >
+			<non-repeatable-stream />
+		</graphql-router:data-fetcher>
+<!-- 		<set-variable value="#[%dw 2.0&#10;output application/java&#10;-&#45;&#45;&#10;&#10;{ &#10;	headers: attributes.context.headers,&#10;	arguments: attributes.arguments&#10;}]" doc:name="Set Variable" doc:id="e1b670b4-7dac-4194-8332-cf929172f5b8" variableName="params" />
+ -->
+		<ee:transform doc:name="Transform Message" doc:id="3490b9f9-8b40-4f18-b531-9134ddb4914b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	menu_id: attributes.arguments.menu_id
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="params" ><![CDATA[%dw 2.0
+output application/java
+---
+
+{ 
+	headers: attributes.context.headers,
+	arguments: attributes.arguments
+}]]></ee:set-variable>
+				<ee:set-variable variableName="startTime" ><![CDATA[%dw 2.0
+output application/java
+---
+now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="9a9ab155-8b39-43bf-818a-c438fefcaed4" name="Subblock-call-Flow" target="subcollections" />
+		<ee:transform doc:name="Transform Message" doc:id="9dcad113-9f6a-471a-a1c1-6a3bf06fb5d7">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+vars.subcollections as Object ++
+{
+	mule_reason: '성공',
+	mule_request_time: vars.startTime,
+	mule_response_time: now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"},
+	mule_result:'0000'	
+} ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<graphql-router:serialize objectTypeName="Query" doc:name="Serialize" doc:id="1d13c967-e34e-4eab-92e7-86796a002619" config-ref="GraphQL_Router_Config" fieldName="getBlockData" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="bb1c56c8-969d-4ba3-9182-4801f50505e7" >
+				<logger level="INFO" doc:name="Logger" doc:id="ad9b59ad-297d-4746-9aad-47d3f43efa17" />
+				<ee:transform doc:name="Transform Message" doc:id="00952ebf-8efa-4310-b670-5524ed2088e4" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	mule_reason: '실패',
+	mule_request_time: vars.startTime,
+	mule_response_time: now() as LocalDateTime  as String {format:"uuuuMMddHHmmssSSS"},
+	mule_result:'9999'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+ 	<flow name="GetPerformanceFlow" doc:id="708aa2d5-a4a0-4f35-b543-29ae7ed6f652" >
+		<graphql-router:data-fetcher doc:name="Data fetcher" doc:id="c04455b2-7886-409d-b811-28bc89d9f758" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="getSomeData"/>
+ 		<logger level="DEBUG" doc:name="Logger" doc:id="c8958189-49e2-47b1-8720-68a61c2c57f7" message="scatter-gather start"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="385148bf-1abc-40dd-96a2-3785be09cd1b" >
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="1741e411-308e-4232-ab2c-155da70f7370" message="030-NATIVE_GNB start"/>
+				<if-euxp:if-euxp-030 doc:name="030-NATIVE_GNB" doc:id="eaefd6f8-f36c-409a-8ba2-5665bd9cc633" config-ref="IF_EUXP_Config" app-typ-cd="NATIVE_GNB" menu-stb-svc-id="BTVNATIVEV542" stb-id="{DDF72870-D2A5-11E9-AF77-B9B309A920DB}" cust-id='#[""]' seg-id='#[""]' request-streaming-mode="NEVER"/>
+				<logger level="DEBUG" doc:name="Logger" doc:id="e697c58a-79eb-4a85-a047-3aea763f2200" message="030-NATIVE_GNB stop"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="55c08e6a-2cef-4350-a98f-caa359e109c0" message="030-VCSANDPNV542 start"/>
+				<if-euxp:if-euxp-030 doc:name="030-VCSANDPNV542" doc:id="641fd9a5-6197-47d7-83ba-3cee8229f090" config-ref="IF_EUXP_Config" app-typ-cd='#[""]' seg-id='#[""]' menu-stb-svc-id="VCSANDPNV542" stb-id="{DDF72870-D2A5-11E9-AF77-B9B309A920DB}" cust-id='#[""]' request-streaming-mode="NEVER"/>
+				<logger level="DEBUG" doc:name="Logger" doc:id="4d3514cf-51ac-4a95-87f9-ab0fcb93fe84" message="030-VCSANDPNV542 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="bc122ac8-4757-4fc4-9be5-4eb4edd347da" message="RACE-001 start"/>
+				<choice doc:name="Choice" doc:id="9a1780dc-07f8-405a-826e-09427113f13b" >
+					<when expression="#[attributes.arguments.race_yn == 'Y']">
+						<raceapi:if-race-001 doc:name="IF-RACE-001" doc:id="d365bd87-7181-467b-90a1-0a50efcd5067" config-ref="RACE_API_Config" cust-id='#[""]' request-streaming-mode="NEVER" />
+					</when>
+					<otherwise >
+						<ee:transform doc:name="Transform Message" doc:id="25315f30-7d5e-4f1d-80d1-dc387177381e" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	referenceCount: null,
+	referenceList: null
+	
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+<!-- 				<ee:transform doc:name="Transform Message" doc:id="d9c63b00-2de4-4d68-b2f3-940923427bf2" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+{
+	referenceCount: null,
+	referenceList: null
+	
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+ -->				<logger level="DEBUG" doc:name="Logger" doc:id="389d60ec-76d9-44f4-9fb0-bba2bfaddb79" message="RACE-001 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="298c3921-0663-4e1d-b7dc-1285a1a42e83" message="EUXP-095 start"/>
+				<if-euxp:if-euxp-095 doc:name="IF-EUXP-095" doc:id="cd8b9e63-14b5-481a-9ce1-083fd51825c6" config-ref="IF_EUXP_Config" stb-id="{DDF72870-D2A5-11E9-AF77-B9B309A920DB}" cust-id='#[""]' before-watch-id='#[""]'  request-streaming-mode="NEVER"/>
+				<logger level="DEBUG" doc:name="Logger" doc:id="9bcff85e-143d-4a2e-b172-33a5efca19b3" message="EUXP-095 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="dc3fa71d-d64c-4f34-973a-677a155fe3f3" message="EUXP-098-1 start"/>
+				<if-euxp:if-euxp-098 doc:name="IF-EUXP-098" doc:id="0e9dcabd-e80f-4e76-9576-59b72efc755f" config-ref="IF_EUXP_Config" app-typ-cd='#[""]' stb-id="{73220E67-9E95-11EC-99EC-6189FA798863}" cust-id='#[""]'  request-streaming-mode="NEVER"/>
+				<logger level="DEBUG" doc:name="Logger" doc:id="a4d861f0-c5c3-4320-ac0b-0451acbcbd45" message="EUXP-098-1 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="aeb9520d-04c6-42eb-9f12-b7d5713ca123" message="EUXP-098-2 start"/>
+				<if-euxp:if-euxp-098 doc:name="IF-EUXP-098" doc:id="d857e27f-1e13-4d0b-8a11-0d0381452514" config-ref="IF_EUXP_Config" app-typ-cd='#[""]' stb-id="{73220E67-9E95-11EC-99EC-6189FA798863}" cust-id='#[""]'  request-streaming-mode="NEVER"/>
+				<logger level="DEBUG" doc:name="Logger" doc:id="c260b326-38df-4ffc-9436-5b716ddbc49e" message="EUXP-098-2 end"/>
+			</route>
+		</scatter-gather>
+		<logger level="DEBUG" doc:name="Logger" doc:id="e26a0595-9317-4915-951f-b9682b3c62f2" message="scatter-gather start"/>
+		<ee:transform doc:name="Transform Message" doc:id="54eca503-e5ed-4dff-9fb9-4a12a175d39d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+//output application/java
+output application/json skipNullOn="everywhere"
+---
+{
+	NATIVE_GNB: {
+		gnbs: payload."0".payload.gnbs map ( gnb , indexOfGnb ) -> {
+			blocks: gnb.blocks map ( block , indexOfBlock ) -> {
+				asis_prd_typ_cd: block.asis_prd_typ_cd,
+				bg_imgs: block.bg_imgs map ( bgimg , indexOfBgimg ) -> {
+					img_path: bgimg.img_path
+				},
+				blk_typ_cd: block.blk_typ_cd,
+				blocks: block.blocks map ( block01 , indexOfBlock01 ) -> {
+				},
+				bnr_exps_mthd_cd: block.bnr_exps_mthd_cd,
+				bnr_off_img_path: block.bnr_off_img_path,
+				bnr_on_img_path: block.bnr_on_img_path,
+				bnr_selected_img_path: block.bnr_selected_img_path,
+				btm_bnr_blk_exps_cd: block.btm_bnr_blk_exps_cd,
+				btm_menu_tree_exps_yn: block.btm_menu_tree_exps_yn,
+				btm_oside_menu_sort_use_yn: block.btm_oside_menu_sort_use_yn,
+				conts_contin_play_yn: block.conts_contin_play_yn,
+				dist_fr_dt: block.dist_fr_dt,
+				dist_to_dt: block.dist_to_dt,
+				exps_mthd_cd: block.exps_mthd_cd,
+				gnb_typ_cd: block.gnb_typ_cd,
+				is_compound_prd: block.is_compound_prd,
+				kidsz_gnb_cd: block.kidsz_gnb_cd,
+				lim_lvl_yn: block.lim_lvl_yn,
+				menu_id: block.menu_id,
+				menu_nm: block.menu_nm,
+				menu_nm_exps_yn: block.menu_nm_exps_yn,
+				menu_off_img_path: block.menu_off_img_path,
+				menu_on_img_path: block.menu_on_img_path,
+				menu_path: block.menu_path,
+				oside_menu_sort_use_yn: block.oside_menu_sort_use_yn,
+				page_path: block.page_path,
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				prd_typ_cd: block.prd_typ_cd,
+				prvw_play_cd: block.prvw_play_cd,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				scn_mthd_cd: block.scn_mthd_cd
+			},
+			bnr_use_yn: gnb.bnr_use_yn,
+			btm_menu_tree_exps_yn: gnb.btm_menu_tree_exps_yn,
+			btm_oside_menu_sort_use_yn: gnb.btm_oside_menu_sort_use_yn,
+			dist_fr_dt: gnb.dist_fr_dt,
+			dist_to_dt: gnb.dist_to_dt,
+			gnb_typ_cd: gnb.gnb_typ_cd,
+			last_bnr_dist_to_dt: gnb.last_bnr_dist_to_dt,
+			lim_lvl_yn: gnb.lim_lvl_yn,
+			menu_exps_prop_cd: gnb.menu_exps_prop_cd,
+			menu_id: gnb.menu_id,
+			menu_nm: gnb.menu_nm,
+			page_path: gnb.page_path,
+			par_grp_menu_id: gnb.par_grp_menu_id
+		},
+		IF: payload."0".payload.IF,
+		media_agent_yn: payload."0".payload.media_agent_yn,
+		reason: payload."0".payload.reason,
+		request_time: payload."0".payload.request_time,
+		response_time: payload."0".payload.response_time,
+		result: payload."0".payload.result,
+		seg_info: payload."0".payload.seg_info,
+		total_count: payload."0".payload.total_count,
+		version: payload."0".payload.version,
+		vip_yn: payload."0".payload.vip_yn
+	},
+	VCSANDPNV542_GNB: {
+		gnbs: payload."1".payload.gnbs map ( gnb , indexOfGnb ) -> {
+			blocks: gnb.blocks map ( block , indexOfBlock ) -> {
+				asis_prd_typ_cd: block.asis_prd_typ_cd,
+				bg_imgs: block.bg_imgs map ( bgimg , indexOfBgimg ) -> {
+					img_path: bgimg.img_path
+				},
+				blk_typ_cd: block.blk_typ_cd,
+				blocks: block.blocks map ( block01 , indexOfBlock01 ) -> {
+				},
+				bnr_exps_mthd_cd: block.bnr_exps_mthd_cd,
+				bnr_off_img_path: block.bnr_off_img_path,
+				bnr_on_img_path: block.bnr_on_img_path,
+				bnr_selected_img_path: block.bnr_selected_img_path,
+				btm_bnr_blk_exps_cd: block.btm_bnr_blk_exps_cd,
+				btm_menu_tree_exps_yn: block.btm_menu_tree_exps_yn,
+				btm_oside_menu_sort_use_yn: block.btm_oside_menu_sort_use_yn,
+				conts_contin_play_yn: block.conts_contin_play_yn,
+				dist_fr_dt: block.dist_fr_dt,
+				dist_to_dt: block.dist_to_dt,
+				exps_mthd_cd: block.exps_mthd_cd,
+				gnb_typ_cd: block.gnb_typ_cd,
+				is_compound_prd: block.is_compound_prd,
+				kidsz_gnb_cd: block.kidsz_gnb_cd,
+				lim_lvl_yn: block.lim_lvl_yn,
+				menu_id: block.menu_id,
+				menu_nm: block.menu_nm,
+				menu_nm_exps_yn: block.menu_nm_exps_yn,
+				menu_off_img_path: block.menu_off_img_path,
+				menu_on_img_path: block.menu_on_img_path,
+				menu_path: block.menu_path,
+				oside_menu_sort_use_yn: block.oside_menu_sort_use_yn,
+				page_path: block.page_path,
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				prd_typ_cd: block.prd_typ_cd,
+				prvw_play_cd: block.prvw_play_cd,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				scn_mthd_cd: block.scn_mthd_cd
+			},
+			bnr_use_yn: gnb.bnr_use_yn,
+			btm_menu_tree_exps_yn: gnb.btm_menu_tree_exps_yn,
+			btm_oside_menu_sort_use_yn: gnb.btm_oside_menu_sort_use_yn,
+			dist_fr_dt: gnb.dist_fr_dt,
+			dist_to_dt: gnb.dist_to_dt,
+			gnb_typ_cd: gnb.gnb_typ_cd,
+			last_bnr_dist_to_dt: gnb.last_bnr_dist_to_dt,
+			lim_lvl_yn: gnb.lim_lvl_yn,
+			menu_exps_prop_cd: gnb.menu_exps_prop_cd,
+			menu_id: gnb.menu_id,
+			menu_nm: gnb.menu_nm,
+			page_path: gnb.page_path,
+			par_grp_menu_id: gnb.par_grp_menu_id
+		},
+		IF: payload."1".payload.IF,
+		media_agent_yn: payload."1".payload.media_agent_yn,
+		reason: payload."1".payload.reason,
+		request_time: payload."1".payload.request_time,
+		response_time: payload."1".payload.response_time,
+		result: payload."1".payload.result,
+		seg_info: payload."1".payload.seg_info,
+		total_count: payload."1".payload.total_count,
+		version: payload."1".payload.version,
+		vip_yn: payload."1".payload.vip_yn
+	},
+	Race001: {
+		referenceCount: payload."2".payload.referenceCount,
+		referenceList: payload."2".payload.referenceList map ( referenceList , indexOfReferenceList ) -> referenceList
+	},
+	RaceLastWatch: {
+		grid: payload."3".payload.grid map ( grid , indexOfGrid ) -> {
+			block: grid.block map ( block , indexOfBlock ) -> {
+				adult: block.adult,
+				catchup: block.catchup,
+				dist_svc_dt: block.dist_svc_dt,
+				epsd_id: block.epsd_id,
+				epsd_rslu_id: block.epsd_rslu_id,
+				genre_cd: block.genre_cd,
+				level: block.level,
+				material_cd: block.material_cd,
+				prod_id: block.prod_id,
+				reg_date: block.reg_date,
+				running_time: block.running_time,
+				series_no: block.series_no,
+				sris_id: block.sris_id,
+				thumbnail: block.thumbnail,
+				title: block.title,
+				trans_type: block.trans_type,
+				update_dt: block.update_dt,
+				watch_rt: block.watch_rt,
+				watch_share_dvc_typ_cd: block.watch_share_dvc_typ_cd,
+				watch_share_id: block.watch_share_id,
+				watch_share_img: block.watch_share_img,
+				watch_share_nm: block.watch_share_nm,
+				watch_share_profile_typ_cd: block.watch_share_profile_typ_cd,
+				watch_share_yn: block.watch_share_yn,
+				watch_time: block.watch_time,
+				yn_kzone: block.yn_kzone,
+				yn_series: block.yn_series
+			},
+			btrack_id: grid.btrack_id,
+			dvc_typ_cd: grid.dvc_typ_cd,
+			page_no: grid.page_no,
+			page_tot: grid.page_tot,
+			profile_id: grid.profile_id,
+			profile_typ_cd: grid.profile_typ_cd,
+			session_id: grid.session_id,
+			sub_title: grid.sub_title,
+			watch_no: grid.watch_no,
+			watch_tot: grid.watch_tot,
+			yn_ppm: grid.yn_ppm
+		},
+		IF: payload."3".payload.IF,
+		reason: payload."3".payload.reason,
+		request_time: payload."3".payload.request_time,
+		response_time: payload."3".payload.response_time,
+		result: payload."3".payload.result,
+		status_code: payload."3".payload.status_code
+	},
+	RacePersonalGrid1: {
+		grid: payload."4".payload.grid map ( grid , indexOfGrid ) -> {
+			block: grid.block map ( block , indexOfBlock ) -> {
+				actor_name: block.actor_name,
+				adlt_lvl_cd: block.adlt_lvl_cd,
+				badge_typ_nm: block.badge_typ_nm,
+				bas_badge_img_path: block.bas_badge_img_path,
+				bf_prd_prc: block.bf_prd_prc,
+				bf_prd_prc_vat: block.bf_prd_prc_vat,
+				bf_sale_prc: block.bf_sale_prc,
+				bf_sale_prc_vat: block.bf_sale_prc_vat,
+				bg_img_path: block.bg_img_path,
+				brand_name: block.brand_name,
+				brcast_tseq_nm: block.brcast_tseq_nm,
+				broad_seq: block.broad_seq,
+				cacbro_yn: block.cacbro_yn,
+				channel_name: block.channel_name,
+				channel_no: block.channel_no,
+				dark_img_yn: block.dark_img_yn,
+				dsc_typ_cd: block.dsc_typ_cd,
+				episode_title: block.episode_title,
+				epsd_dist_fir_svc_dt: block.epsd_dist_fir_svc_dt,
+				epsd_id: block.epsd_id,
+				epsd_lag_capt_typ_cd: block.epsd_lag_capt_typ_cd,
+				epsd_poster_filename_h: block.epsd_poster_filename_h,
+				epsd_rslu_id: block.epsd_rslu_id,
+				first_epsd_id: block.first_epsd_id,
+				fstry_draw_exps_yn: block.fstry_draw_exps_yn,
+				fstry_fam_role_exps_yn: block.fstry_fam_role_exps_yn,
+				fstry_role_plyg_exps_yn: block.fstry_role_plyg_exps_yn,
+				fstry_spch_exps_yn: block.fstry_spch_exps_yn,
+				icon_exps_fr_dt: block.icon_exps_fr_dt,
+				icon_exps_to_dt: block.icon_exps_to_dt,
+				icon_url: block.icon_url,
+				id: block.id,
+				id_svc: block.id_svc,
+				i_img_cd: block.i_img_cd,
+				kids_yn: block.kids_yn,
+				meta_sub_typ_cd: block.meta_sub_typ_cd,
+				meta_typ_cd: block.meta_typ_cd,
+				otts: block.otts map ( ott , indexOfOtt ) -> {
+					ott_id: ott.ott_id,
+					ott_products: ott.ott_products map ( ottproduct , indexOfOttproduct ) -> {
+					},
+					ott_typ_cd: ott.ott_typ_cd
+				},
+				play_tms_val: block.play_tms_val,
+				position: block.position,
+				poster_filename_h: block.poster_filename_h,
+				poster_filename_v: block.poster_filename_v,
+				ppm_grid_icon_img_path: block.ppm_grid_icon_img_path,
+				ppv_uabl_yn: block.ppv_uabl_yn,
+				prd_info: block.prd_info map ( prdinfo , indexOfPrdinfo ) -> {
+				},
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				product_img: block.product_img,
+				product_name: block.product_name,
+				quiz_yn: block.quiz_yn,
+				race_recommend_yn: block.race_recommend_yn,
+				recommend_comment: block.recommend_comment,
+				rslu_typ_cd: block.rslu_typ_cd,
+				rsv_orgnz_yn: block.rsv_orgnz_yn,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				shopping_infos: block.shopping_infos map ( shoppinginfo , indexOfShoppinginfo ) -> {
+				},
+				smr_yn: block.smr_yn,
+				sort_seq: block.sort_seq,
+				sris_cmpt_yn: block.sris_cmpt_yn,
+				sris_dist_fir_svc_dt: block.sris_dist_fir_svc_dt,
+				sris_id: block.sris_id,
+				sris_lag_capt_typ_cd: block.sris_lag_capt_typ_cd,
+				svc_fr_dt: block.svc_fr_dt,
+				svc_to_dt: block.svc_to_dt,
+				svc_typ_cd: block.svc_typ_cd,
+				synon_typ_cd: block.synon_typ_cd,
+				thumbnail_filename_h: block.thumbnail_filename_h,
+				title: block.title,
+				tmdb_pnt_info: block.tmdb_pnt_info,
+				tseq_orgnz_yn: block.tseq_orgnz_yn,
+				"type": block."type",
+				user_badge_img_path: block.user_badge_img_path,
+				user_badge_wdt_img_path: block.user_badge_wdt_img_path,
+				vod_dp_yn: block.vod_dp_yn,
+				vod_svc_yn: block.vod_svc_yn,
+				wat_lvl_cd: block.wat_lvl_cd
+			},
+			block_cnt: grid.block_cnt,
+			block_preview_info: grid.block_preview_info,
+			btrack_id: grid.btrack_id,
+			race_call_id: grid.race_call_id,
+			section_id: grid.section_id,
+			session_id: grid.session_id,
+			sub_title: grid.sub_title
+		},
+		IF: payload."4".payload.IF,
+		reason: payload."4".payload.reason,
+		request_time: payload."4".payload.request_time,
+		response_time: payload."4".payload.response_time,
+		result: payload."4".payload.result,
+		status_code: payload."4".payload.status_code,
+		total_count: payload."4".payload.total_count
+	},
+	RacePersonalGrid2: {
+		grid: payload."5".payload.grid map ( grid , indexOfGrid ) -> {
+			block: grid.block map ( block , indexOfBlock ) -> {
+				actor_name: block.actor_name,
+				adlt_lvl_cd: block.adlt_lvl_cd,
+				badge_typ_nm: block.badge_typ_nm,
+				bas_badge_img_path: block.bas_badge_img_path,
+				bf_prd_prc: block.bf_prd_prc,
+				bf_prd_prc_vat: block.bf_prd_prc_vat,
+				bf_sale_prc: block.bf_sale_prc,
+				bf_sale_prc_vat: block.bf_sale_prc_vat,
+				bg_img_path: block.bg_img_path,
+				brand_name: block.brand_name,
+				brcast_tseq_nm: block.brcast_tseq_nm,
+				broad_seq: block.broad_seq,
+				cacbro_yn: block.cacbro_yn,
+				channel_name: block.channel_name,
+				channel_no: block.channel_no,
+				dark_img_yn: block.dark_img_yn,
+				dsc_typ_cd: block.dsc_typ_cd,
+				episode_title: block.episode_title,
+				epsd_dist_fir_svc_dt: block.epsd_dist_fir_svc_dt,
+				epsd_id: block.epsd_id,
+				epsd_lag_capt_typ_cd: block.epsd_lag_capt_typ_cd,
+				epsd_poster_filename_h: block.epsd_poster_filename_h,
+				epsd_rslu_id: block.epsd_rslu_id,
+				first_epsd_id: block.first_epsd_id,
+				fstry_draw_exps_yn: block.fstry_draw_exps_yn,
+				fstry_fam_role_exps_yn: block.fstry_fam_role_exps_yn,
+				fstry_role_plyg_exps_yn: block.fstry_role_plyg_exps_yn,
+				fstry_spch_exps_yn: block.fstry_spch_exps_yn,
+				icon_exps_fr_dt: block.icon_exps_fr_dt,
+				icon_exps_to_dt: block.icon_exps_to_dt,
+				icon_url: block.icon_url,
+				id: block.id,
+				id_svc: block.id_svc,
+				i_img_cd: block.i_img_cd,
+				kids_yn: block.kids_yn,
+				meta_sub_typ_cd: block.meta_sub_typ_cd,
+				meta_typ_cd: block.meta_typ_cd,
+				otts: block.otts map ( ott , indexOfOtt ) -> {
+					ott_id: ott.ott_id,
+					ott_products: ott.ott_products map ( ottproduct , indexOfOttproduct ) -> {
+					},
+					ott_typ_cd: ott.ott_typ_cd
+				},
+				play_tms_val: block.play_tms_val,
+				position: block.position,
+				poster_filename_h: block.poster_filename_h,
+				poster_filename_v: block.poster_filename_v,
+				ppm_grid_icon_img_path: block.ppm_grid_icon_img_path,
+				ppv_uabl_yn: block.ppv_uabl_yn,
+				prd_info: block.prd_info map ( prdinfo , indexOfPrdinfo ) -> {
+				},
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				product_img: block.product_img,
+				product_name: block.product_name,
+				quiz_yn: block.quiz_yn,
+				race_recommend_yn: block.race_recommend_yn,
+				recommend_comment: block.recommend_comment,
+				rslu_typ_cd: block.rslu_typ_cd,
+				rsv_orgnz_yn: block.rsv_orgnz_yn,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				shopping_infos: block.shopping_infos map ( shoppinginfo , indexOfShoppinginfo ) -> {
+				},
+				smr_yn: block.smr_yn,
+				sort_seq: block.sort_seq,
+				sris_cmpt_yn: block.sris_cmpt_yn,
+				sris_dist_fir_svc_dt: block.sris_dist_fir_svc_dt,
+				sris_id: block.sris_id,
+				sris_lag_capt_typ_cd: block.sris_lag_capt_typ_cd,
+				svc_fr_dt: block.svc_fr_dt,
+				svc_to_dt: block.svc_to_dt,
+				svc_typ_cd: block.svc_typ_cd,
+				synon_typ_cd: block.synon_typ_cd,
+				thumbnail_filename_h: block.thumbnail_filename_h,
+				title: block.title,
+				tmdb_pnt_info: block.tmdb_pnt_info,
+				tseq_orgnz_yn: block.tseq_orgnz_yn,
+				"type": block."type",
+				user_badge_img_path: block.user_badge_img_path,
+				user_badge_wdt_img_path: block.user_badge_wdt_img_path,
+				vod_dp_yn: block.vod_dp_yn,
+				vod_svc_yn: block.vod_svc_yn,
+				wat_lvl_cd: block.wat_lvl_cd
+			},
+			block_cnt: grid.block_cnt,
+			block_preview_info: grid.block_preview_info,
+			btrack_id: grid.btrack_id,
+			race_call_id: grid.race_call_id,
+			section_id: grid.section_id,
+			session_id: grid.session_id,
+			sub_title: grid.sub_title
+		},
+		IF: payload."5".payload.IF,
+		reason: payload."5".payload.reason,
+		request_time: payload."5".payload.request_time,
+		response_time: payload."5".payload.response_time,
+		result: payload."5".payload.result,
+		status_code: payload."5".payload.status_code,
+		total_count: payload."5".payload.total_count
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Logger" doc:id="3b4e036a-a58a-41cd-85a2-7681edb49591" message="getPerformance End"/>
+		<graphql-router:serialize objectTypeName="Query" doc:name="Serialize" doc:id="f91d9c03-d945-4ff3-85ee-5b2b22de1c83" config-ref="GraphQL_Router_Config" fieldName="getSomeData"/>
+	</flow>
+	<flow name="DataLoading" doc:id="f3d501ed-3871-4a1b-9580-7aaa5e116c9d" >
+		<graphql-router:data-loader doc:name="Data loader" doc:id="84457021-3bf7-4a61-a731-6471eab2b289" config-ref="GraphQL_Router_Config" objectTypeName="PerformanceDataItem"/>
+		<logger level="DEBUG" doc:name="Logger" doc:id="4e16f6ef-4490-4bfd-bcc5-10d7dc8337bd" message="scatter-gather start"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="0a3f8656-85a3-4578-9861-7e8ea41a35e6" >
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="3dbe1d00-b36f-4d2f-9a59-f7511310d89a" message="030-NATIVE_GNB start"/>
+				<try doc:name="Try" doc:id="e9de8343-235f-4761-920e-5e113f572e90" >
+					<if-euxp:if-euxp-030 doc:name="030-NATIVE_GNB" doc:id="3ee523db-71db-4caf-9fc4-fde1c71b84de" config-ref="IF_EUXP1_Config" app-typ-cd="NATIVE_GNB" menu-stb-svc-id="BTVNATIVEV542" stb-id="{DDF72870-D2A5-11E9-AF77-B9B309A920DB}" cust-id='#[""]' seg-id='#[""]' request-streaming-mode="NEVER" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="4b3d493f-a339-4c84-8e1a-c003902d3f3d" type="ANY">
+							<logger level="ERROR" doc:name="Logger" doc:id="3f5b4e32-27e7-4bae-8990-504ac45d54cc" message="#[error.description]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<logger level="DEBUG" doc:name="Logger" doc:id="09e43092-7842-4d66-8f96-a6856cd40af8" message="030-NATIVE_GNB stop"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="79cf91f5-219d-481d-96b6-52d5d63b8896" message="030-VCSANDPNV542 start"/>
+				<try doc:name="Try" doc:id="bf7aa6dd-0ac0-4ffd-9965-996f2cc9b43b" >
+					<if-euxp:if-euxp-030 doc:name="030-VCSANDPNV542" doc:id="39ae5a09-d226-4c96-a5f8-81f5c83f1171" config-ref="IF_EUXP2_Config" app-typ-cd='#[""]' seg-id='#[""]' menu-stb-svc-id="VCSANDPNV542" stb-id="{DDF72870-D2A5-11E9-AF77-B9B309A920DB}" cust-id='#[""]' request-streaming-mode="NEVER" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="a39ccff5-2ee4-44b8-b101-bef0e00ab5a8" type="ANY">
+							<logger level="ERROR" doc:name="Logger" doc:id="8a460f95-1c10-443f-b705-293140fa436f" message="#[error.description]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<logger level="DEBUG" doc:name="Logger" doc:id="c80a2059-8463-4433-8b88-dd6c5b6a3ac4" message="030-VCSANDPNV542 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="7750e9be-4bfc-4376-af10-6f5263ed5bc8" message="RACE-001 start"/>
+				<choice doc:name="Choice" doc:id="afab3aa1-0ac8-4059-b3e3-1b42548b9847" >
+					<when expression="#[attributes.arguments.race_yn == 'Y']">
+						<try doc:name="Try" doc:id="29f5b21d-2bc8-42e1-8226-fcf8f6aef315" >
+							<raceapi:if-race-001 doc:name="IF-RACE-001" doc:id="c44fd572-e175-445e-aae4-3e53ccb37efc" config-ref="RACE_API_Config" cust-id='#[""]' request-streaming-mode="NEVER" />
+							<error-handler >
+								<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="24c84cf3-3895-4687-8a8f-34dd1cdb13d1" type="ANY">
+									<logger level="ERROR" doc:name="Logger" doc:id="78e5962b-f463-46e1-b157-47f4d82a9ed2" message="#[error.description]"/>
+								</on-error-propagate>
+							</error-handler>
+						</try>
+					</when>
+					<otherwise >
+						<ee:transform doc:name="Transform Message" doc:id="cad67eee-38e7-4909-a5db-a82d2e9a12bd" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	referenceCount: null,
+	referenceList: null
+	
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+<!-- 				<ee:transform doc:name="Transform Message" doc:id="94d9989c-cbbd-4ccf-a16b-e978e97d5cb0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+{
+	referenceCount: null,
+	referenceList: null
+	
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+ -->				<logger level="DEBUG" doc:name="Logger" doc:id="576e9235-1cb4-45e7-a02b-1e6ef9aa64d5" message="RACE-001 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="6cad0121-a61f-41d4-b6c0-ca85d03286a7" message="EUXP-095 start"/>
+				<try doc:name="Try" doc:id="a710ecee-fb14-4873-982e-f2e30eba5a91" >
+					<if-euxp:if-euxp-095 doc:name="IF-EUXP-095" doc:id="d92fbe6a-4f3c-42b6-92f9-0f81f57d038b" config-ref="IF_EUXP3_Config" stb-id="{DDF72870-D2A5-11E9-AF77-B9B309A920DB}" cust-id='#[""]' before-watch-id='#[""]' request-streaming-mode="NEVER" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="9f46fcb1-69ab-47a2-8528-1176fe810685" >
+							<logger level="ERROR" doc:name="Logger" doc:id="5f3da716-0763-452d-9504-33b98c52677e" message="#[error.description]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<logger level="DEBUG" doc:name="Logger" doc:id="dae5bcd2-3310-4c2c-93c4-8c152ffc5850" message="EUXP-095 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="84b6c5a4-5bfc-4911-af13-63b181461a33" message="EUXP-098-1 start"/>
+				<try doc:name="Try" doc:id="1b24ad73-400f-41d0-a8b1-8ffb8e30531f" >
+					<if-euxp:if-euxp-098 doc:name="IF-EUXP-098" doc:id="547d4f56-9ed5-4610-9a84-326d39575fc7" config-ref="IF_EUXP4_Config" app-typ-cd='#[""]' stb-id="{73220E67-9E95-11EC-99EC-6189FA798863}" cust-id='#[""]' request-streaming-mode="NEVER" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="3ad489cf-47b7-4ecb-8b87-00de8ee529cb" >
+							<logger level="ERROR" doc:name="Logger" doc:id="e7cb02d0-7ce8-4819-8733-f30a7117d6c0" message="#[error.description]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<logger level="DEBUG" doc:name="Logger" doc:id="856147d8-eb01-4fe1-b889-2b064603668e" message="EUXP-098-1 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="6583a588-5f61-4722-aa64-063f7f2a255d" message="EUXP-098-2 start"/>
+				<try doc:name="Try" doc:id="346f05b0-c220-40d6-8673-dc530ba1ec30" >
+					<if-euxp:if-euxp-098 doc:name="IF-EUXP-098" doc:id="684dfdac-e1f3-4f9c-a1c3-9ece93cd2d8e" config-ref="IF_EUXP6_Config" app-typ-cd='#[""]' stb-id="{73220E67-9E95-11EC-99EC-6189FA798863}" cust-id='#[""]' request-streaming-mode="NEVER" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="b8c44221-58e5-4b45-8f56-c1c7badc4d1f" >
+							<logger level="ERROR" doc:name="Logger" doc:id="589e9a59-d714-4b09-a81e-c74641dbd22f" message="#[error.description]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<logger level="DEBUG" doc:name="Logger" doc:id="4453a4f2-80f7-49c1-afc7-3de4f17ee4ab" message="EUXP-098-2 end"/>
+			</route>
+		</scatter-gather>
+		<logger level="DEBUG" doc:name="Logger" doc:id="622cb595-64ae-4acb-9973-153a6d317eae" message="scatter-gather start"/>
+		<ee:transform doc:name="Transform Message" doc:id="9081cd36-1ee4-4907-a78b-32fd9f91a75a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	NATIVE_GNB: {
+		gnbs: payload."0".payload.gnbs map ( gnb , indexOfGnb ) -> {
+			blocks: gnb.blocks map ( block , indexOfBlock ) -> {
+				asis_prd_typ_cd: block.asis_prd_typ_cd,
+				bg_imgs: block.bg_imgs map ( bgimg , indexOfBgimg ) -> {
+					img_path: bgimg.img_path
+				},
+				blk_typ_cd: block.blk_typ_cd,
+				blocks: block.blocks map ( block01 , indexOfBlock01 ) -> {
+				},
+				bnr_exps_mthd_cd: block.bnr_exps_mthd_cd,
+				bnr_off_img_path: block.bnr_off_img_path,
+				bnr_on_img_path: block.bnr_on_img_path,
+				bnr_selected_img_path: block.bnr_selected_img_path,
+				btm_bnr_blk_exps_cd: block.btm_bnr_blk_exps_cd,
+				btm_menu_tree_exps_yn: block.btm_menu_tree_exps_yn,
+				btm_oside_menu_sort_use_yn: block.btm_oside_menu_sort_use_yn,
+				conts_contin_play_yn: block.conts_contin_play_yn,
+				dist_fr_dt: block.dist_fr_dt,
+				dist_to_dt: block.dist_to_dt,
+				exps_mthd_cd: block.exps_mthd_cd,
+				gnb_typ_cd: block.gnb_typ_cd,
+				is_compound_prd: block.is_compound_prd,
+				kidsz_gnb_cd: block.kidsz_gnb_cd,
+				lim_lvl_yn: block.lim_lvl_yn,
+				menu_id: block.menu_id,
+				menu_nm: block.menu_nm,
+				menu_nm_exps_yn: block.menu_nm_exps_yn,
+				menu_off_img_path: block.menu_off_img_path,
+				menu_on_img_path: block.menu_on_img_path,
+				menu_path: block.menu_path,
+				oside_menu_sort_use_yn: block.oside_menu_sort_use_yn,
+				page_path: block.page_path,
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				prd_typ_cd: block.prd_typ_cd,
+				prvw_play_cd: block.prvw_play_cd,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				scn_mthd_cd: block.scn_mthd_cd
+			},
+			bnr_use_yn: gnb.bnr_use_yn,
+			btm_menu_tree_exps_yn: gnb.btm_menu_tree_exps_yn,
+			btm_oside_menu_sort_use_yn: gnb.btm_oside_menu_sort_use_yn,
+			dist_fr_dt: gnb.dist_fr_dt,
+			dist_to_dt: gnb.dist_to_dt,
+			gnb_typ_cd: gnb.gnb_typ_cd,
+			last_bnr_dist_to_dt: gnb.last_bnr_dist_to_dt,
+			lim_lvl_yn: gnb.lim_lvl_yn,
+			menu_exps_prop_cd: gnb.menu_exps_prop_cd,
+			menu_id: gnb.menu_id,
+			menu_nm: gnb.menu_nm,
+			page_path: gnb.page_path,
+			par_grp_menu_id: gnb.par_grp_menu_id
+		},
+		IF: payload."0".payload.IF,
+		media_agent_yn: payload."0".payload.media_agent_yn,
+		reason: payload."0".payload.reason,
+		request_time: payload."0".payload.request_time,
+		response_time: payload."0".payload.response_time,
+		result: payload."0".payload.result,
+		seg_info: payload."0".payload.seg_info,
+		total_count: payload."0".payload.total_count,
+		version: payload."0".payload.version,
+		vip_yn: payload."0".payload.vip_yn
+	},
+	VCSANDPNV542_GNB: {
+		gnbs: payload."1".payload.gnbs map ( gnb , indexOfGnb ) -> {
+			blocks: gnb.blocks map ( block , indexOfBlock ) -> {
+				asis_prd_typ_cd: block.asis_prd_typ_cd,
+				bg_imgs: block.bg_imgs map ( bgimg , indexOfBgimg ) -> {
+					img_path: bgimg.img_path
+				},
+				blk_typ_cd: block.blk_typ_cd,
+				blocks: block.blocks map ( block01 , indexOfBlock01 ) -> {
+				},
+				bnr_exps_mthd_cd: block.bnr_exps_mthd_cd,
+				bnr_off_img_path: block.bnr_off_img_path,
+				bnr_on_img_path: block.bnr_on_img_path,
+				bnr_selected_img_path: block.bnr_selected_img_path,
+				btm_bnr_blk_exps_cd: block.btm_bnr_blk_exps_cd,
+				btm_menu_tree_exps_yn: block.btm_menu_tree_exps_yn,
+				btm_oside_menu_sort_use_yn: block.btm_oside_menu_sort_use_yn,
+				conts_contin_play_yn: block.conts_contin_play_yn,
+				dist_fr_dt: block.dist_fr_dt,
+				dist_to_dt: block.dist_to_dt,
+				exps_mthd_cd: block.exps_mthd_cd,
+				gnb_typ_cd: block.gnb_typ_cd,
+				is_compound_prd: block.is_compound_prd,
+				kidsz_gnb_cd: block.kidsz_gnb_cd,
+				lim_lvl_yn: block.lim_lvl_yn,
+				menu_id: block.menu_id,
+				menu_nm: block.menu_nm,
+				menu_nm_exps_yn: block.menu_nm_exps_yn,
+				menu_off_img_path: block.menu_off_img_path,
+				menu_on_img_path: block.menu_on_img_path,
+				menu_path: block.menu_path,
+				oside_menu_sort_use_yn: block.oside_menu_sort_use_yn,
+				page_path: block.page_path,
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				prd_typ_cd: block.prd_typ_cd,
+				prvw_play_cd: block.prvw_play_cd,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				scn_mthd_cd: block.scn_mthd_cd
+			},
+			bnr_use_yn: gnb.bnr_use_yn,
+			btm_menu_tree_exps_yn: gnb.btm_menu_tree_exps_yn,
+			btm_oside_menu_sort_use_yn: gnb.btm_oside_menu_sort_use_yn,
+			dist_fr_dt: gnb.dist_fr_dt,
+			dist_to_dt: gnb.dist_to_dt,
+			gnb_typ_cd: gnb.gnb_typ_cd,
+			last_bnr_dist_to_dt: gnb.last_bnr_dist_to_dt,
+			lim_lvl_yn: gnb.lim_lvl_yn,
+			menu_exps_prop_cd: gnb.menu_exps_prop_cd,
+			menu_id: gnb.menu_id,
+			menu_nm: gnb.menu_nm,
+			page_path: gnb.page_path,
+			par_grp_menu_id: gnb.par_grp_menu_id
+		},
+		IF: payload."1".payload.IF,
+		media_agent_yn: payload."1".payload.media_agent_yn,
+		reason: payload."1".payload.reason,
+		request_time: payload."1".payload.request_time,
+		response_time: payload."1".payload.response_time,
+		result: payload."1".payload.result,
+		seg_info: payload."1".payload.seg_info,
+		total_count: payload."1".payload.total_count,
+		version: payload."1".payload.version,
+		vip_yn: payload."1".payload.vip_yn
+	},
+	Race001: {
+		referenceCount: payload."2".payload.referenceCount,
+		referenceList: payload."2".payload.referenceList map ( referenceList , indexOfReferenceList ) -> referenceList
+	},
+	RaceLastWatch: {
+		grid: payload."3".payload.grid map ( grid , indexOfGrid ) -> {
+			block: grid.block map ( block , indexOfBlock ) -> {
+				adult: block.adult,
+				catchup: block.catchup,
+				dist_svc_dt: block.dist_svc_dt,
+				epsd_id: block.epsd_id,
+				epsd_rslu_id: block.epsd_rslu_id,
+				genre_cd: block.genre_cd,
+				level: block.level,
+				material_cd: block.material_cd,
+				prod_id: block.prod_id,
+				reg_date: block.reg_date,
+				running_time: block.running_time,
+				series_no: block.series_no,
+				sris_id: block.sris_id,
+				thumbnail: block.thumbnail,
+				title: block.title,
+				trans_type: block.trans_type,
+				update_dt: block.update_dt,
+				watch_rt: block.watch_rt,
+				watch_share_dvc_typ_cd: block.watch_share_dvc_typ_cd,
+				watch_share_id: block.watch_share_id,
+				watch_share_img: block.watch_share_img,
+				watch_share_nm: block.watch_share_nm,
+				watch_share_profile_typ_cd: block.watch_share_profile_typ_cd,
+				watch_share_yn: block.watch_share_yn,
+				watch_time: block.watch_time,
+				yn_kzone: block.yn_kzone,
+				yn_series: block.yn_series
+			},
+			btrack_id: grid.btrack_id,
+			dvc_typ_cd: grid.dvc_typ_cd,
+			page_no: grid.page_no,
+			page_tot: grid.page_tot,
+			profile_id: grid.profile_id,
+			profile_typ_cd: grid.profile_typ_cd,
+			session_id: grid.session_id,
+			sub_title: grid.sub_title,
+			watch_no: grid.watch_no,
+			watch_tot: grid.watch_tot,
+			yn_ppm: grid.yn_ppm
+		},
+		IF: payload."3".payload.IF,
+		reason: payload."3".payload.reason,
+		request_time: payload."3".payload.request_time,
+		response_time: payload."3".payload.response_time,
+		result: payload."3".payload.result,
+		status_code: payload."3".payload.status_code
+	},
+	RacePersonalGrid1: {
+		grid: payload."4".payload.grid map ( grid , indexOfGrid ) -> {
+			block: grid.block map ( block , indexOfBlock ) -> {
+				actor_name: block.actor_name,
+				adlt_lvl_cd: block.adlt_lvl_cd,
+				badge_typ_nm: block.badge_typ_nm,
+				bas_badge_img_path: block.bas_badge_img_path,
+				bf_prd_prc: block.bf_prd_prc,
+				bf_prd_prc_vat: block.bf_prd_prc_vat,
+				bf_sale_prc: block.bf_sale_prc,
+				bf_sale_prc_vat: block.bf_sale_prc_vat,
+				bg_img_path: block.bg_img_path,
+				brand_name: block.brand_name,
+				brcast_tseq_nm: block.brcast_tseq_nm,
+				broad_seq: block.broad_seq,
+				cacbro_yn: block.cacbro_yn,
+				channel_name: block.channel_name,
+				channel_no: block.channel_no,
+				dark_img_yn: block.dark_img_yn,
+				dsc_typ_cd: block.dsc_typ_cd,
+				episode_title: block.episode_title,
+				epsd_dist_fir_svc_dt: block.epsd_dist_fir_svc_dt,
+				epsd_id: block.epsd_id,
+				epsd_lag_capt_typ_cd: block.epsd_lag_capt_typ_cd,
+				epsd_poster_filename_h: block.epsd_poster_filename_h,
+				epsd_rslu_id: block.epsd_rslu_id,
+				first_epsd_id: block.first_epsd_id,
+				fstry_draw_exps_yn: block.fstry_draw_exps_yn,
+				fstry_fam_role_exps_yn: block.fstry_fam_role_exps_yn,
+				fstry_role_plyg_exps_yn: block.fstry_role_plyg_exps_yn,
+				fstry_spch_exps_yn: block.fstry_spch_exps_yn,
+				icon_exps_fr_dt: block.icon_exps_fr_dt,
+				icon_exps_to_dt: block.icon_exps_to_dt,
+				icon_url: block.icon_url,
+				id: block.id,
+				id_svc: block.id_svc,
+				i_img_cd: block.i_img_cd,
+				kids_yn: block.kids_yn,
+				meta_sub_typ_cd: block.meta_sub_typ_cd,
+				meta_typ_cd: block.meta_typ_cd,
+				otts: block.otts map ( ott , indexOfOtt ) -> {
+					ott_id: ott.ott_id,
+					ott_products: ott.ott_products map ( ottproduct , indexOfOttproduct ) -> {
+					},
+					ott_typ_cd: ott.ott_typ_cd
+				},
+				play_tms_val: block.play_tms_val,
+				position: block.position,
+				poster_filename_h: block.poster_filename_h,
+				poster_filename_v: block.poster_filename_v,
+				ppm_grid_icon_img_path: block.ppm_grid_icon_img_path,
+				ppv_uabl_yn: block.ppv_uabl_yn,
+				prd_info: block.prd_info map ( prdinfo , indexOfPrdinfo ) -> {
+				},
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				product_img: block.product_img,
+				product_name: block.product_name,
+				quiz_yn: block.quiz_yn,
+				race_recommend_yn: block.race_recommend_yn,
+				recommend_comment: block.recommend_comment,
+				rslu_typ_cd: block.rslu_typ_cd,
+				rsv_orgnz_yn: block.rsv_orgnz_yn,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				shopping_infos: block.shopping_infos map ( shoppinginfo , indexOfShoppinginfo ) -> {
+				},
+				smr_yn: block.smr_yn,
+				sort_seq: block.sort_seq,
+				sris_cmpt_yn: block.sris_cmpt_yn,
+				sris_dist_fir_svc_dt: block.sris_dist_fir_svc_dt,
+				sris_id: block.sris_id,
+				sris_lag_capt_typ_cd: block.sris_lag_capt_typ_cd,
+				svc_fr_dt: block.svc_fr_dt,
+				svc_to_dt: block.svc_to_dt,
+				svc_typ_cd: block.svc_typ_cd,
+				synon_typ_cd: block.synon_typ_cd,
+				thumbnail_filename_h: block.thumbnail_filename_h,
+				title: block.title,
+				tmdb_pnt_info: block.tmdb_pnt_info,
+				tseq_orgnz_yn: block.tseq_orgnz_yn,
+				"type": block."type",
+				user_badge_img_path: block.user_badge_img_path,
+				user_badge_wdt_img_path: block.user_badge_wdt_img_path,
+				vod_dp_yn: block.vod_dp_yn,
+				vod_svc_yn: block.vod_svc_yn,
+				wat_lvl_cd: block.wat_lvl_cd
+			},
+			block_cnt: grid.block_cnt,
+			block_preview_info: grid.block_preview_info,
+			btrack_id: grid.btrack_id,
+			race_call_id: grid.race_call_id,
+			section_id: grid.section_id,
+			session_id: grid.session_id,
+			sub_title: grid.sub_title
+		},
+		IF: payload."4".payload.IF,
+		reason: payload."4".payload.reason,
+		request_time: payload."4".payload.request_time,
+		response_time: payload."4".payload.response_time,
+		result: payload."4".payload.result,
+		status_code: payload."4".payload.status_code,
+		total_count: payload."4".payload.total_count
+	},
+	RacePersonalGrid2: {
+		grid: payload."5".payload.grid map ( grid , indexOfGrid ) -> {
+			block: grid.block map ( block , indexOfBlock ) -> {
+				actor_name: block.actor_name,
+				adlt_lvl_cd: block.adlt_lvl_cd,
+				badge_typ_nm: block.badge_typ_nm,
+				bas_badge_img_path: block.bas_badge_img_path,
+				bf_prd_prc: block.bf_prd_prc,
+				bf_prd_prc_vat: block.bf_prd_prc_vat,
+				bf_sale_prc: block.bf_sale_prc,
+				bf_sale_prc_vat: block.bf_sale_prc_vat,
+				bg_img_path: block.bg_img_path,
+				brand_name: block.brand_name,
+				brcast_tseq_nm: block.brcast_tseq_nm,
+				broad_seq: block.broad_seq,
+				cacbro_yn: block.cacbro_yn,
+				channel_name: block.channel_name,
+				channel_no: block.channel_no,
+				dark_img_yn: block.dark_img_yn,
+				dsc_typ_cd: block.dsc_typ_cd,
+				episode_title: block.episode_title,
+				epsd_dist_fir_svc_dt: block.epsd_dist_fir_svc_dt,
+				epsd_id: block.epsd_id,
+				epsd_lag_capt_typ_cd: block.epsd_lag_capt_typ_cd,
+				epsd_poster_filename_h: block.epsd_poster_filename_h,
+				epsd_rslu_id: block.epsd_rslu_id,
+				first_epsd_id: block.first_epsd_id,
+				fstry_draw_exps_yn: block.fstry_draw_exps_yn,
+				fstry_fam_role_exps_yn: block.fstry_fam_role_exps_yn,
+				fstry_role_plyg_exps_yn: block.fstry_role_plyg_exps_yn,
+				fstry_spch_exps_yn: block.fstry_spch_exps_yn,
+				icon_exps_fr_dt: block.icon_exps_fr_dt,
+				icon_exps_to_dt: block.icon_exps_to_dt,
+				icon_url: block.icon_url,
+				id: block.id,
+				id_svc: block.id_svc,
+				i_img_cd: block.i_img_cd,
+				kids_yn: block.kids_yn,
+				meta_sub_typ_cd: block.meta_sub_typ_cd,
+				meta_typ_cd: block.meta_typ_cd,
+				otts: block.otts map ( ott , indexOfOtt ) -> {
+					ott_id: ott.ott_id,
+					ott_products: ott.ott_products map ( ottproduct , indexOfOttproduct ) -> {
+					},
+					ott_typ_cd: ott.ott_typ_cd
+				},
+				play_tms_val: block.play_tms_val,
+				position: block.position,
+				poster_filename_h: block.poster_filename_h,
+				poster_filename_v: block.poster_filename_v,
+				ppm_grid_icon_img_path: block.ppm_grid_icon_img_path,
+				ppv_uabl_yn: block.ppv_uabl_yn,
+				prd_info: block.prd_info map ( prdinfo , indexOfPrdinfo ) -> {
+				},
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				product_img: block.product_img,
+				product_name: block.product_name,
+				quiz_yn: block.quiz_yn,
+				race_recommend_yn: block.race_recommend_yn,
+				recommend_comment: block.recommend_comment,
+				rslu_typ_cd: block.rslu_typ_cd,
+				rsv_orgnz_yn: block.rsv_orgnz_yn,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				shopping_infos: block.shopping_infos map ( shoppinginfo , indexOfShoppinginfo ) -> {
+				},
+				smr_yn: block.smr_yn,
+				sort_seq: block.sort_seq,
+				sris_cmpt_yn: block.sris_cmpt_yn,
+				sris_dist_fir_svc_dt: block.sris_dist_fir_svc_dt,
+				sris_id: block.sris_id,
+				sris_lag_capt_typ_cd: block.sris_lag_capt_typ_cd,
+				svc_fr_dt: block.svc_fr_dt,
+				svc_to_dt: block.svc_to_dt,
+				svc_typ_cd: block.svc_typ_cd,
+				synon_typ_cd: block.synon_typ_cd,
+				thumbnail_filename_h: block.thumbnail_filename_h,
+				title: block.title,
+				tmdb_pnt_info: block.tmdb_pnt_info,
+				tseq_orgnz_yn: block.tseq_orgnz_yn,
+				"type": block."type",
+				user_badge_img_path: block.user_badge_img_path,
+				user_badge_wdt_img_path: block.user_badge_wdt_img_path,
+				vod_dp_yn: block.vod_dp_yn,
+				vod_svc_yn: block.vod_svc_yn,
+				wat_lvl_cd: block.wat_lvl_cd
+			},
+			block_cnt: grid.block_cnt,
+			block_preview_info: grid.block_preview_info,
+			btrack_id: grid.btrack_id,
+			race_call_id: grid.race_call_id,
+			section_id: grid.section_id,
+			session_id: grid.session_id,
+			sub_title: grid.sub_title
+		},
+		IF: payload."5".payload.IF,
+		reason: payload."5".payload.reason,
+		request_time: payload."5".payload.request_time,
+		response_time: payload."5".payload.response_time,
+		result: payload."5".payload.result,
+		status_code: payload."5".payload.status_code,
+		total_count: payload."5".payload.total_count
+	}
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Logger" doc:id="e9ad6497-c140-4bfb-85ff-7705dddfa79d" message="getPerformance End"/>
+		<graphql-router:serialize-batch doc:name="Serialize batch" doc:id="ab0a9410-f55f-43c5-8561-55af251fd1f6" config-ref="GraphQL_Router_Config" objectTypeName="PerformanceDataItem"/>
+	</flow>
+	<flow name="DataLoading2" doc:id="1b65a9a1-e59f-4ae3-827c-dc046ced915c" >
+		<graphql-router:data-loader doc:name="Data loader" doc:id="72730a2c-3665-499a-ba9e-29204b08edfb" config-ref="GraphQL_Router_Config" objectTypeName="PerformanceDataItem2"/>
+		<logger level="DEBUG" doc:name="Logger" doc:id="d55d5e45-4831-4dd5-98f9-0f811b6d31cc" message="scatter-gather start"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="1b9bd93a-3bfc-47d7-ae47-70899d42f0e0" >
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="2123d22c-e13e-4e15-a200-7d2e48df84ce" message="030-NATIVE_GNB start"/>
+				<try doc:name="Try" doc:id="9d124887-69f8-4a59-8494-1491eac895c9" >
+					<if-euxp:if-euxp-030 doc:name="030-NATIVE_GNB" doc:id="bb0ec110-9ea4-435a-aedc-1f981c35036c" config-ref="IF_EUXP1_Config" app-typ-cd="NATIVE_GNB" menu-stb-svc-id="BTVNATIVEV542" stb-id="{DDF72870-D2A5-11E9-AF77-B9B309A920DB}" cust-id='#[""]' seg-id='#[""]' request-streaming-mode="NEVER" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="49c36db1-d4b8-49b4-84f0-ed2c4b95c36d" type="ANY">
+							<logger level="ERROR" doc:name="Logger" doc:id="f6608aaa-0647-4512-90e6-c59da7fd46c5" message="#[error.description]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<logger level="DEBUG" doc:name="Logger" doc:id="f7e4b36f-8544-4cd8-b590-a413bce873ea" message="030-NATIVE_GNB stop"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="65ddbd83-48c5-4fdf-8ba0-c5a41e9f5fa8" message="EUXP-095 start"/>
+				<try doc:name="Try" doc:id="995a254e-ba97-4b70-8fa4-ac7cf7ea8bc2" >
+					<if-euxp:if-euxp-095 doc:name="IF-EUXP-095" doc:id="cf71bd93-ad7c-47d4-90d2-cc2a8fd4ffe6" config-ref="IF_EUXP2_Config" stb-id="{DDF72870-D2A5-11E9-AF77-B9B309A920DB}" cust-id='#[""]' before-watch-id='#[""]' request-streaming-mode="NEVER" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="80e81e90-95c0-4131-9746-5f69fdbebc5e" >
+							<logger level="ERROR" doc:name="Logger" doc:id="c999524a-d8a2-4a99-9633-e58cf6a202ea" message="#[error.description]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<logger level="DEBUG" doc:name="Logger" doc:id="2ee881ef-6365-4178-918b-0f966ab47672" message="EUXP-095 end"/>
+			</route>
+			<route >
+				<logger level="DEBUG" doc:name="Logger" doc:id="d171c093-bb5a-4f74-878e-973f53e32ae1" message="EUXP-098-1 start"/>
+				<try doc:name="Try" doc:id="6a0df0aa-468f-4a3b-adab-4acc85a2d363" >
+					<if-euxp:if-euxp-098 doc:name="IF-EUXP-098" doc:id="d89020da-78f8-4369-8674-d339ec24ca7b" config-ref="IF_EUXP3_Config" app-typ-cd='#[""]' stb-id="{73220E67-9E95-11EC-99EC-6189FA798863}" cust-id='#[""]' request-streaming-mode="NEVER" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="76896f47-8f79-4fab-ae48-97992a2271d6" >
+							<logger level="ERROR" doc:name="Logger" doc:id="40736d17-63f8-4c26-8b13-258830e35799" message="#[error.description]"/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<logger level="DEBUG" doc:name="Logger" doc:id="29641a19-62d3-425a-8c5d-69a3d6722b9d" message="EUXP-098-1 end"/>
+			</route>
+		</scatter-gather>
+		<logger level="DEBUG" doc:name="Logger" doc:id="ebf61073-99d8-421e-9523-61594c102a64" message="scatter-gather start"/>
+		<ee:transform doc:name="Transform Message" doc:id="ac2744a9-b688-492f-b039-e1e22daeea4b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	NATIVE_GNB: {
+		gnbs: payload."0".payload.gnbs map ( gnb , indexOfGnb ) -> {
+			blocks: gnb.blocks map ( block , indexOfBlock ) -> {
+				asis_prd_typ_cd: block.asis_prd_typ_cd,
+				bg_imgs: block.bg_imgs map ( bgimg , indexOfBgimg ) -> {
+					img_path: bgimg.img_path
+				},
+				blk_typ_cd: block.blk_typ_cd,
+				blocks: block.blocks map ( block01 , indexOfBlock01 ) -> {
+				},
+				bnr_exps_mthd_cd: block.bnr_exps_mthd_cd,
+				bnr_off_img_path: block.bnr_off_img_path,
+				bnr_on_img_path: block.bnr_on_img_path,
+				bnr_selected_img_path: block.bnr_selected_img_path,
+				btm_bnr_blk_exps_cd: block.btm_bnr_blk_exps_cd,
+				btm_menu_tree_exps_yn: block.btm_menu_tree_exps_yn,
+				btm_oside_menu_sort_use_yn: block.btm_oside_menu_sort_use_yn,
+				conts_contin_play_yn: block.conts_contin_play_yn,
+				dist_fr_dt: block.dist_fr_dt,
+				dist_to_dt: block.dist_to_dt,
+				exps_mthd_cd: block.exps_mthd_cd,
+				gnb_typ_cd: block.gnb_typ_cd,
+				is_compound_prd: block.is_compound_prd,
+				kidsz_gnb_cd: block.kidsz_gnb_cd,
+				lim_lvl_yn: block.lim_lvl_yn,
+				menu_id: block.menu_id,
+				menu_nm: block.menu_nm,
+				menu_nm_exps_yn: block.menu_nm_exps_yn,
+				menu_off_img_path: block.menu_off_img_path,
+				menu_on_img_path: block.menu_on_img_path,
+				menu_path: block.menu_path,
+				oside_menu_sort_use_yn: block.oside_menu_sort_use_yn,
+				page_path: block.page_path,
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				prd_typ_cd: block.prd_typ_cd,
+				prvw_play_cd: block.prvw_play_cd,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				scn_mthd_cd: block.scn_mthd_cd
+			},
+			bnr_use_yn: gnb.bnr_use_yn,
+			btm_menu_tree_exps_yn: gnb.btm_menu_tree_exps_yn,
+			btm_oside_menu_sort_use_yn: gnb.btm_oside_menu_sort_use_yn,
+			dist_fr_dt: gnb.dist_fr_dt,
+			dist_to_dt: gnb.dist_to_dt,
+			gnb_typ_cd: gnb.gnb_typ_cd,
+			last_bnr_dist_to_dt: gnb.last_bnr_dist_to_dt,
+			lim_lvl_yn: gnb.lim_lvl_yn,
+			menu_exps_prop_cd: gnb.menu_exps_prop_cd,
+			menu_id: gnb.menu_id,
+			menu_nm: gnb.menu_nm,
+			page_path: gnb.page_path,
+			par_grp_menu_id: gnb.par_grp_menu_id
+		},
+		IF: payload."0".payload.IF,
+		media_agent_yn: payload."0".payload.media_agent_yn,
+		reason: payload."0".payload.reason,
+		request_time: payload."0".payload.request_time,
+		response_time: payload."0".payload.response_time,
+		result: payload."0".payload.result,
+		seg_info: payload."0".payload.seg_info,
+		total_count: payload."0".payload.total_count,
+		version: payload."0".payload.version,
+		vip_yn: payload."0".payload.vip_yn
+	},
+	RaceLastWatch: {
+		grid: payload."3".payload.grid map ( grid , indexOfGrid ) -> {
+			block: grid.block map ( block , indexOfBlock ) -> {
+				adult: block.adult,
+				catchup: block.catchup,
+				dist_svc_dt: block.dist_svc_dt,
+				epsd_id: block.epsd_id,
+				epsd_rslu_id: block.epsd_rslu_id,
+				genre_cd: block.genre_cd,
+				level: block.level,
+				material_cd: block.material_cd,
+				prod_id: block.prod_id,
+				reg_date: block.reg_date,
+				running_time: block.running_time,
+				series_no: block.series_no,
+				sris_id: block.sris_id,
+				thumbnail: block.thumbnail,
+				title: block.title,
+				trans_type: block.trans_type,
+				update_dt: block.update_dt,
+				watch_rt: block.watch_rt,
+				watch_share_dvc_typ_cd: block.watch_share_dvc_typ_cd,
+				watch_share_id: block.watch_share_id,
+				watch_share_img: block.watch_share_img,
+				watch_share_nm: block.watch_share_nm,
+				watch_share_profile_typ_cd: block.watch_share_profile_typ_cd,
+				watch_share_yn: block.watch_share_yn,
+				watch_time: block.watch_time,
+				yn_kzone: block.yn_kzone,
+				yn_series: block.yn_series
+			},
+			btrack_id: grid.btrack_id,
+			dvc_typ_cd: grid.dvc_typ_cd,
+			page_no: grid.page_no,
+			page_tot: grid.page_tot,
+			profile_id: grid.profile_id,
+			profile_typ_cd: grid.profile_typ_cd,
+			session_id: grid.session_id,
+			sub_title: grid.sub_title,
+			watch_no: grid.watch_no,
+			watch_tot: grid.watch_tot,
+			yn_ppm: grid.yn_ppm
+		},
+		IF: payload."3".payload.IF,
+		reason: payload."3".payload.reason,
+		request_time: payload."3".payload.request_time,
+		response_time: payload."3".payload.response_time,
+		result: payload."3".payload.result,
+		status_code: payload."3".payload.status_code
+	},
+	RacePersonalGrid1: {
+		grid: payload."4".payload.grid map ( grid , indexOfGrid ) -> {
+			block: grid.block map ( block , indexOfBlock ) -> {
+				actor_name: block.actor_name,
+				adlt_lvl_cd: block.adlt_lvl_cd,
+				badge_typ_nm: block.badge_typ_nm,
+				bas_badge_img_path: block.bas_badge_img_path,
+				bf_prd_prc: block.bf_prd_prc,
+				bf_prd_prc_vat: block.bf_prd_prc_vat,
+				bf_sale_prc: block.bf_sale_prc,
+				bf_sale_prc_vat: block.bf_sale_prc_vat,
+				bg_img_path: block.bg_img_path,
+				brand_name: block.brand_name,
+				brcast_tseq_nm: block.brcast_tseq_nm,
+				broad_seq: block.broad_seq,
+				cacbro_yn: block.cacbro_yn,
+				channel_name: block.channel_name,
+				channel_no: block.channel_no,
+				dark_img_yn: block.dark_img_yn,
+				dsc_typ_cd: block.dsc_typ_cd,
+				episode_title: block.episode_title,
+				epsd_dist_fir_svc_dt: block.epsd_dist_fir_svc_dt,
+				epsd_id: block.epsd_id,
+				epsd_lag_capt_typ_cd: block.epsd_lag_capt_typ_cd,
+				epsd_poster_filename_h: block.epsd_poster_filename_h,
+				epsd_rslu_id: block.epsd_rslu_id,
+				first_epsd_id: block.first_epsd_id,
+				fstry_draw_exps_yn: block.fstry_draw_exps_yn,
+				fstry_fam_role_exps_yn: block.fstry_fam_role_exps_yn,
+				fstry_role_plyg_exps_yn: block.fstry_role_plyg_exps_yn,
+				fstry_spch_exps_yn: block.fstry_spch_exps_yn,
+				icon_exps_fr_dt: block.icon_exps_fr_dt,
+				icon_exps_to_dt: block.icon_exps_to_dt,
+				icon_url: block.icon_url,
+				id: block.id,
+				id_svc: block.id_svc,
+				i_img_cd: block.i_img_cd,
+				kids_yn: block.kids_yn,
+				meta_sub_typ_cd: block.meta_sub_typ_cd,
+				meta_typ_cd: block.meta_typ_cd,
+				otts: block.otts map ( ott , indexOfOtt ) -> {
+					ott_id: ott.ott_id,
+					ott_products: ott.ott_products map ( ottproduct , indexOfOttproduct ) -> {
+					},
+					ott_typ_cd: ott.ott_typ_cd
+				},
+				play_tms_val: block.play_tms_val,
+				position: block.position,
+				poster_filename_h: block.poster_filename_h,
+				poster_filename_v: block.poster_filename_v,
+				ppm_grid_icon_img_path: block.ppm_grid_icon_img_path,
+				ppv_uabl_yn: block.ppv_uabl_yn,
+				prd_info: block.prd_info map ( prdinfo , indexOfPrdinfo ) -> {
+				},
+				prd_prc: block.prd_prc,
+				prd_prc_id: block.prd_prc_id,
+				prd_prc_vat: block.prd_prc_vat,
+				product_img: block.product_img,
+				product_name: block.product_name,
+				quiz_yn: block.quiz_yn,
+				race_recommend_yn: block.race_recommend_yn,
+				recommend_comment: block.recommend_comment,
+				rslu_typ_cd: block.rslu_typ_cd,
+				rsv_orgnz_yn: block.rsv_orgnz_yn,
+				sale_prc: block.sale_prc,
+				sale_prc_vat: block.sale_prc_vat,
+				shopping_infos: block.shopping_infos map ( shoppinginfo , indexOfShoppinginfo ) -> {
+				},
+				smr_yn: block.smr_yn,
+				sort_seq: block.sort_seq,
+				sris_cmpt_yn: block.sris_cmpt_yn,
+				sris_dist_fir_svc_dt: block.sris_dist_fir_svc_dt,
+				sris_id: block.sris_id,
+				sris_lag_capt_typ_cd: block.sris_lag_capt_typ_cd,
+				svc_fr_dt: block.svc_fr_dt,
+				svc_to_dt: block.svc_to_dt,
+				svc_typ_cd: block.svc_typ_cd,
+				synon_typ_cd: block.synon_typ_cd,
+				thumbnail_filename_h: block.thumbnail_filename_h,
+				title: block.title,
+				tmdb_pnt_info: block.tmdb_pnt_info,
+				tseq_orgnz_yn: block.tseq_orgnz_yn,
+				"type": block."type",
+				user_badge_img_path: block.user_badge_img_path,
+				user_badge_wdt_img_path: block.user_badge_wdt_img_path,
+				vod_dp_yn: block.vod_dp_yn,
+				vod_svc_yn: block.vod_svc_yn,
+				wat_lvl_cd: block.wat_lvl_cd
+			},
+			block_cnt: grid.block_cnt,
+			block_preview_info: grid.block_preview_info,
+			btrack_id: grid.btrack_id,
+			race_call_id: grid.race_call_id,
+			section_id: grid.section_id,
+			session_id: grid.session_id,
+			sub_title: grid.sub_title
+		},
+		IF: payload."4".payload.IF,
+		reason: payload."4".payload.reason,
+		request_time: payload."4".payload.request_time,
+		response_time: payload."4".payload.response_time,
+		result: payload."4".payload.result,
+		status_code: payload."4".payload.status_code,
+		total_count: payload."4".payload.total_count
+	},
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Logger" doc:id="eb81bc2c-07a5-4f3c-9732-b3320abdb8b4" message="getPerformance End"/>
+		<graphql-router:serialize-batch doc:name="Serialize batch" doc:id="8c739cdb-f8f5-406d-81d8-066dec603492" config-ref="GraphQL_Router_Config" objectTypeName="PerformanceDataItem2"/>
+	</flow>
+	<flow name="Subblock-call-Flow" doc:id="aad52730-5863-47bd-8f1e-ad8703e7a5ff" maxConcurrency="100">
+		<!-- <ee:cache doc:name="SubcollectionCache" doc:id="90dc546d-d197-4ed2-9cd1-223a2faeca6a" cachingStrategy-ref="SubCollections_Caching_Strategy"> -->
+			<try doc:name="Try" doc:id="2bb62f66-92b0-4758-b513-52c3df5da8bd" >
+			<if-euxp:if-euxp-003 doc:name="IF-EUXP-003" doc:id="eb2e2729-1a9f-4ea1-9e5f-7b9558a90017" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP1_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" scrbr-typ-cd="#[vars.params.arguments.scrbr_typ_cd]" request-streaming-mode="NEVER" />
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3b1c5a4a-829e-4d60-bc41-c6b3b5ef21bd" >
+					<logger level="ERROR" doc:name="Logger" doc:id="58d05fa3-3bfd-4cac-9933-2074634ba3f4" message="#[error.description]"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<!-- </ee:cache> -->
+		<logger level="DEBUG" doc:name="Logger" doc:id="7951bfd8-d4f9-4295-8c21-7ca340f42b31" message="EUXP-003"/>
+		<choice doc:name="Choice" doc:id="b035830b-4a88-4a27-9b63-d53351a42aad" >
+			<when expression="(((vars.params.arguments.view_type == 'HOME') and (payload.menu_id == 'NM2000118615')) or vars.params.arguments.view_type == 'ALL') and (payload.result == '0000')">
+				<parallel-foreach doc:name="Parallel For Each" doc:id="60b7c19a-a4ef-4782-b336-db1a3cbdc94b" collection="#[%dw 2.0&#10;output application/java&#10;---&#10;((payload.blocks filter (($.blk_typ_cd == '20') and ($.scn_mthd_cd ==''))) filter $$ &lt; vars.params.arguments.view_count as Number) ++&#10;((payload.blocks filter (($.blk_typ_cd == '70'))) filter $$ &lt; vars.params.arguments.view_count as Number)  ++&#10;((payload.blocks filter (($.blk_typ_cd == '20') and (($.scn_mthd_cd =='501') or ($.scn_mthd_cd =='507') or ($.scn_mthd_cd =='538') or ($.scn_mthd_cd =='539')))) filter $$ &lt; vars.params.arguments.view_count as Number)  ++&#10;((payload.blocks filter (($.blk_typ_cd == '30') )) filter $$ &lt; vars.params.arguments.view_count as Number)]" target="subcollection2">
+						<choice doc:name="Choice" doc:id="3b9c5acd-3145-4ff2-9331-1fa9cce5aea3">
+							<when expression="(payload.blk_typ_cd == '20') and (payload.scn_mthd_cd =='')  ">
+								<!-- <ee:cache doc:name="EUXP-003-Cache" doc:id="cbb6d97d-a7e6-4c2f-8b6b-9411e4db198c" cachingStrategy-ref="EUXP_003_Caching_Strategy"> -->
+								<try doc:name="Try" doc:id="cced6fe4-b13f-46d0-8e23-cd5a9d32a8cf" >
+								<if-euxp:if-euxp-003 doc:name="IF-EUXP-003" doc:id="12ee055d-9549-4017-b59a-eb0ae28e9899" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP2_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" request-streaming-mode="NEVER" />
+								<error-handler >
+									<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="f316e6b1-cbad-4c98-8865-7db5ef0a2fe7" type="ANY">
+										<logger level="ERROR" doc:name="Logger" doc:id="d0483f41-68bb-4d59-863e-d8fced7a4723" message="#[error.description]"/>
+									</on-error-propagate>
+								</error-handler>
+							</try>
+								<ee:transform doc:name="Transform Message" doc:id="623cb4a0-7ccc-4477-b7fa-fe0d7c9ba937">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	block:payload
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<!-- </ee:cache> -->
+							<logger level="DEBUG" doc:name="Logger" doc:id="5a575c8f-fc11-4a4e-b846-8042e13b3adc" message="EUXP-003"/>
+							</when>
+							<when expression="(payload.blk_typ_cd == '70')">
+								<!-- <ee:cache doc:name="EUXP-007-Cache" doc:id="d54fb39e-1720-4daf-9f28-f84edc4de0b7" cachingStrategy-ref="EUXP_007_Caching_Strategy"> -->
+								<try doc:name="Try" doc:id="552349cf-1e7e-4565-bfbe-5a1eef3bbedc" >
+								<if-euxp:if-euxp-007 doc:name="IF-EUXP-007" doc:id="37268fa7-abcc-4a78-a497-2379e6723740" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP4_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" seg-id="#[vars.params.arguments.seg_id]" version="#[vars.params.arguments.version]" scrbr-typ-cd="#[vars.params.arguments.scrbr_typ_cd]" request-streaming-mode="NEVER" />
+								<error-handler >
+									<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="2c469d77-7b95-43bc-a560-9ccd5ffaa36e" type="ANY">
+										<logger level="ERROR" doc:name="Logger" doc:id="761f7ff3-a3f3-46aa-8202-c4e8f9768b40" message="#[error.description]"/>
+									</on-error-propagate>
+								</error-handler>
+							</try>
+								<ee:transform doc:name="Transform Message" doc:id="6e568d48-25a7-4b2c-9b4b-6025912df008">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	eventBlock:payload
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<!-- </ee:cache> -->
+							<logger level="DEBUG" doc:name="Logger" doc:id="2a19e989-7b7f-462c-ab62-d33e6cfb616b" message="EUXP-007"/>
+								
+							</when>
+							<when expression="(payload.blk_typ_cd == '20') and ((payload.scn_mthd_cd =='501') or (payload.scn_mthd_cd =='507') or (payload.scn_mthd_cd =='538') or (payload.scn_mthd_cd =='539')) ">
+								<!-- <ee:cache doc:name="EUXP-009-Cache" doc:id="e75c30f0-0ebf-4a71-8408-06700f188444" cachingStrategy-ref="EUXP_009_Caching_Strategy"> -->
+								<try doc:name="Try" doc:id="dfebed39-6666-4254-a1d2-3b04b3e48365" >
+								<if-euxp:if-euxp-009 doc:name="IF-EUXP-009" doc:id="1ea3d532-b2dc-4c77-8401-10198bc07ac1" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP5_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" cw-call-id="#[payload.cw_call_id_val]" version="#[vars.params.arguments.version]" btv-profile-id="#[vars.profile.profile.profile_id]" item="#['']" target="tempRaceGrid" request-streaming-mode="NEVER" />
+								<error-handler >
+									<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="5e0c9240-719d-4dd2-8288-b36a25b18176" type="ANY">
+										<logger level="ERROR" doc:name="Logger" doc:id="ba521402-7702-4503-98d1-d70bc8841f1b" message="#[error.description]"/>
+									</on-error-propagate>
+								</error-handler>
+							</try>
+								<ee:transform doc:name="Transform Message" doc:id="d17f8d6a-803a-4202-a1a0-9f4fdc811889">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	raceGrid:vars.tempRaceGrid ++ {menu_id:payload.menu_id, menu_nm:payload.menu_nm }
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<!-- </ee:cache> -->
+							<logger level="DEBUG" doc:name="Logger" doc:id="e20be069-3153-4fba-b852-b6bc2e428049" message="EUXP-009"/>
+							</when>
+							<when expression="(payload.blk_typ_cd == '30') ">
+								<!-- <ee:cache doc:name="EUXP-024-Cache" doc:id="89657d93-905c-420a-94b1-818fb702d6ca" cachingStrategy-ref="EUXP_024_Caching_Strategy"> -->
+								<try doc:name="Try" doc:id="9be2828e-ac46-4d30-8962-5c1552cc2d59" >
+								<if-euxp:if-euxp-024 doc:name="IF-EUXP-024" doc:id="3fd6334b-5f7e-41f8-819e-d790e1ba91dc" content-type="#[vars.params.headers.'content-type']" accept="#[vars.params.headers.accept]" client-id="#[vars.params.headers.client_id]" client-ip="#[vars.params.headers.client_ip]" client-sw-ver="#[vars.params.headers.client_swver]" client-model="#[vars.params.headers.client_model]" cust-id="#[vars.params.headers.cust_id]" time-stamp="#[vars.params.headers.timestamp]" auth-val="#[vars.params.headers.auth_val]" api-key="#[vars.params.headers.api_key]" uuid="#[vars.params.headers.uuid]" trace="#[vars.params.headers.trace]" config-ref="IF_EUXP6_Config" menu-id="#[payload.menu_id]" menu-stb-svc-id="#[vars.params.arguments.menu_stb_svc_id]" stb-id="#[vars.params.arguments.stb_id]" app-typ-cd="#[vars.params.arguments.app_typ_cd]" version="#[vars.params.arguments.version]" sort-typ-cd="#['']" target="tempContentsGrid" page-no="#[vars.params.arguments.page_no as Number]" page-cnt="#[vars.params.arguments.page_count as Number]" request-streaming-mode="NEVER" />
+								<error-handler >
+									<on-error-propagate enableNotifications="true" logException="false" doc:name="On Error Propagate" doc:id="d63cc788-84b4-4f9a-a7b6-6222e0e376a8" type="ANY">
+										<logger level="ERROR" doc:name="Logger" doc:id="ddae303c-0fc6-4d5f-a995-cffcdac69455" message="#[error.description]"/>
+									</on-error-propagate>
+								</error-handler>
+							</try>
+								<ee:transform doc:name="Transform Message" doc:id="7d818f7a-f24d-4118-a8c5-30c0f981a7ed">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	contentsGrid:vars.tempContentsGrid ++ { menu_nm:payload.menu_nm }
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<!-- </ee:cache> -->
+							<logger level="DEBUG" doc:name="Logger" doc:id="c12f6648-76e2-4e4b-b0ba-45653447db14" message="EUXP-024"/>
+							</when>
+						</choice>
+					</parallel-foreach>
+				<ee:transform doc:name="set payload" doc:id="60a3873a-c768-4e58-bde5-f81f993bff96">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload ++
+{
+	subBlocks: vars.subcollection2.payload.block,
+	eventBlocks:vars.subcollection2.payload.eventBlock,
+	raceGrids:vars.subcollection2.payload.raceGrid,
+	contentsGrids:vars.subcollection2.payload .contentsGrid
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+		</choice>
+ 	</flow>
+	<flow name="IF-PROF-015-Flow" doc:id="768dfd48-37eb-4bdf-981a-673fb7f51f1e" >
+		<graphql-router:data-fetcher objectTypeName="Query" doc:name="Data fetcher" doc:id="ff39afc6-95dd-4406-968f-501def096c2a" config-ref="GraphQL_Router_Config" fieldName="iFPROF015"/>
+		<if-prof:if-prof-015 doc:name="Get default by stbs" doc:id="3cb0e456-480c-4fe1-aeea-cf2e19678b7f" config-ref="IF_PROF_015_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id='#[attributes.context.headers.Client_ID]' client-ip='#[attributes.context.headers.Client_IP]' client-sw-ver='#[attributes.context.headers.Client_SWVer]' client-model='#[attributes.context.headers.Client_Model]' cust-id='#[attributes.context.headers.Cust_ID]' time-stamp="#[attributes.context.headers.TimeStamp]" auth-val='#[attributes.context.headers.Auth_Val]' api-key='#[attributes.context.headers.Api_Key]' uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" if="#[attributes.arguments.IF]" stb-id='#[attributes.arguments.stb_id]' target="ifProf015"/>
+		<ee:transform doc:name="Transform Message" doc:id="d3436134-48bc-4211-a7cb-186245a60d13" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	elapsed_time: vars.ifProf015.elapsed_time,
+	IF: vars.ifProf015.IF,
+	profile_id: vars.ifProf015.profile.profile_id,
+	profile: {
+		insert_dt: vars.ifProf015.profile.insert_dt,
+		lock_password_yn: vars.ifProf015.profile.lock_password_yn,
+		lock_use_yn: vars.ifProf015.profile.lock_use_yn,
+		pair_count: vars.ifProf015.profile.pair_count,
+		profile_id: vars.ifProf015.profile.profile_id,
+		profile_img_dim_path: vars.ifProf015.profile.profile_img_dim_path,
+		profile_img_path: vars.ifProf015.profile.profile_img_path,
+		profile_img_server: vars.ifProf015.profile.profile_img_server,
+		profile_img_type: vars.ifProf015.profile.profile_img_type,
+		profile_name: vars.ifProf015.profile.profile_name,
+		purc_auth_yn: vars.ifProf015.profile.purc_auth_yn,
+		reg_device_cd: vars.ifProf015.profile.reg_device_cd,
+		self_auth_yn: vars.ifProf015.profile.self_auth_yn,
+		stb_active_dt: vars.ifProf015.profile.stb_active_dt,
+		stb_active_yn: vars.ifProf015.profile.stb_active_yn,
+		stb_default_yn: vars.ifProf015.profile.stb_default_yn,
+		stb_id_list: vars.ifProf015.profile.stb_id_list map ( stbidlist , indexOfStbidlist ) -> stbidlist,
+		tst_reg_yn: vars.ifProf015.profile.tst_reg_yn,
+		update_dt: vars.ifProf015.profile.update_dt
+	},
+	reason: vars.ifProf015.reason,
+	request_id: vars.ifProf015.request_id,
+	response_format: vars.ifProf015.response_format,
+	result: vars.ifProf015.result,
+	stb_id: vars.ifProf015.stb_id
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<graphql-router:serialize doc:name="Serialize" doc:id="e07e312f-b360-4aff-b465-0ba301333d2a" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="iFPROF015"/>
+	</flow>
+	<flow name="IF-EPS-401-Flow" doc:id="ee8678af-bba6-4977-b088-46a8b0c72f05" >
+		<graphql-router:data-fetcher doc:name="Data fetcher" doc:id="2c58352b-554c-4191-b85f-d3fc6fda0fc8" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="iFEPS401"/>
+		<if-eps:if-eps-401 doc:name="IF-EPS-401" doc:id="221dfa57-13ff-4645-a30e-fc35866213b2" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" config-ref="IF_EPS_Config" if='#[attributes.arguments."if"]' stb-id="#[attributes.arguments.stb_id]" ver="#[attributes.arguments.ver]" ui-name="#[attributes.arguments.ui_name]" client-name="#[attributes.arguments.client_name]" response-format="#[attributes.arguments.response_format]" mac="#[attributes.arguments.mac]" yn-support-agmt="#[attributes.arguments.ynSupportAgmt]" page="#[attributes.arguments.page]" count="#[attributes.arguments.count]" order="#[attributes.arguments.order]" target="ifeps401"/>
+		<ee:transform doc:name="Transform Message" doc:id="5024192d-cdb0-4f9d-92b6-9538fe090c54" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	count: vars.ifeps401.count,
+	coupons: {
+		coupon: vars.ifeps401.coupons.coupon map ( coupon , indexOfCoupon ) -> {
+			applyEndDate: coupon.applyEndDate,
+			confirmDate: coupon.confirmDate,
+			couponNo: coupon.couponNo,
+			couponType: coupon.couponType,
+			detailInfomation: coupon.detailInfomation,
+			discountType: coupon.discountType,
+			discountValue: coupon.discountValue,
+			expireMessage: coupon.expireMessage,
+			isAdultPpm: coupon.isAdultPpm,
+			landingId: coupon.landingId,
+			landingName: coupon.landingName,
+			landingProductType: coupon.landingProductType,
+			landingType: coupon.landingType,
+			masterNo: coupon.masterNo,
+			ppmDiscountPeriod: coupon.ppmDiscountPeriod,
+			title: coupon.title,
+			usedDate: coupon.usedDate
+		}
+	},
+	expireCount: vars.ifeps401.expireCount,
+	"if": vars.ifeps401."if",
+	page: vars.ifeps401.page,
+	reason: vars.ifeps401.reason,
+	response_format: vars.ifeps401.response_format,
+	result: vars.ifeps401.result,
+	svc_name: vars.ifeps401.svc_name,
+	totalCount: vars.ifeps401.totalCount,
+	ui_name: vars.ifeps401.ui_name,
+	usableCount: vars.ifeps401.usableCount,
+	ver: vars.ifeps401.ver
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<graphql-router:serialize doc:name="Serialize" doc:id="6e56a83b-21d9-4f83-8ba4-4eb006d16a64" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="iFEPS401"/>
+	</flow>
+	<flow name="IF-EPS-751-Flow" doc:id="fddb508c-fb2b-42e5-9f43-e4b7a51cfd5c" >
+		<graphql-router:data-fetcher doc:name="Data fetcher" doc:id="55d5af11-4cf9-47c5-b6fb-b04c65c364e3" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="iFEPS751"/>
+		<if-eps:if-eps-751 doc:name="IF-EPS-751" doc:id="53690d6e-28e3-49d0-a3ee-e940c99b84c3" config-ref="IF_EPS_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" target="ifeps751" if='#[attributes.arguments."if"]' ver="#[attributes.arguments.ver]" ui-name="#[attributes.arguments.ui_name]" client-name="#[attributes.arguments.client_name]" response-format="#[attributes.arguments.response_format]" mac="#[attributes.arguments.mac]" page="#[attributes.arguments.page]" count="#[attributes.arguments.count]" stb-id="#[attributes.arguments.stb_id]"/>
+		<ee:transform doc:name="Transform Message" doc:id="ca3bb320-66ce-4243-881a-9ba8e0065ddb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	count: vars.ifeps751.count,
+	expireNewBpoint: vars.ifeps751.expireNewBpoint,
+	"if": vars.ifeps751."if",
+	newBpoints: {
+		newBpoint: vars.ifeps751.newBpoints.newBpoint map ( newBpoint , indexOfNewBpoint ) -> {
+			balance: newBpoint.balance,
+			confirmDate: newBpoint.confirmDate,
+			expireMessage: newBpoint.expireMessage,
+			masterNo: newBpoint.masterNo,
+			newBpointNo: newBpoint.newBpointNo,
+			title: newBpoint.title,
+			useRate: newBpoint.useRate
+		}
+	},
+	page: vars.ifeps751.page,
+	reason: vars.ifeps751.reason,
+	response_format: vars.ifeps751.response_format,
+	result: vars.ifeps751.result,
+	svc_name: vars.ifeps751.svc_name,
+	totalCount: vars.ifeps751.totalCount,
+	ui_name: vars.ifeps751.ui_name,
+	usableNewBpoint: vars.ifeps751.usableNewBpoint,
+	ver: vars.ifeps751.ver
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<graphql-router:serialize doc:name="Serialize" doc:id="1dd55bcf-66b8-4d15-b72e-477b8557ce2b" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="iFEPS751"/>
+	</flow>
+	<flow name="IF-EUXP-030-Flow" doc:id="76ebb01a-beac-4370-a9cb-3d5ac17e300f" >
+		<graphql-router:data-fetcher doc:name="Data fetcher" doc:id="d17be542-86eb-49f9-a842-53fbdf06f8d3" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="iFEUXP030"/>
+		<if-euxp:if-euxp-030 doc:name="IF-EUXP-030" doc:id="47d21eea-c604-497f-9028-f7ba0955fbd4" config-ref="IF_EUXP_Config" content-type="#[attributes.context.headers.'content-type']" accept="#[attributes.context.headers.accept]" client-id="#[attributes.context.headers.Client_ID]" client-ip="#[attributes.context.headers.Client_IP]" client-sw-ver="#[attributes.context.headers.Client_SWVer]" client-model="#[attributes.context.headers.Client_Model]" cust-id="#[attributes.context.headers.Cust_ID]" time-stamp="#[attributes.context.headers.TimeStamp]" auth-val="#[attributes.context.headers.Auth_Val]" api-key="#[attributes.context.headers.Api_Key]" uuid="#[attributes.context.headers.UUID]" trace="#[attributes.context.headers.Trace]" target="gnbinfo" if="#[attributes.arguments.IF]" app-typ-cd="#[attributes.arguments.app_typ_cd]" seg-id="#[attributes.arguments.seg_id]" inspect-yn="#[attributes.arguments.inspect_yn]" menu-stb-svc-id="#[attributes.arguments.menu_stb_svc_id]" version="#[attributes.arguments.version]" stb-id="#[attributes.arguments.stb_id]"/>
+		<ee:transform doc:name="Transform Message" doc:id="bd446681-f02b-4015-9c8d-2d516fd34c24" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	gnbs: vars.gnbinfo.gnbs map ( gnb , indexOfGnb ) -> {
+		blocks: gnb.blocks map ( block , indexOfBlock ) -> {
+			asis_prd_typ_cd: block.asis_prd_typ_cd,
+			bg_imgs: block.bg_imgs map ( bgimg , indexOfBgimg ) -> {
+				img_path: bgimg.img_path
+			},
+			blk_typ_cd: block.blk_typ_cd,
+			blocks: block.blocks map ( block01 , indexOfBlock01 ) -> {
+			},
+			bnr_exps_mthd_cd: block.bnr_exps_mthd_cd,
+			bnr_off_img_path: block.bnr_off_img_path,
+			bnr_on_img_path: block.bnr_on_img_path,
+			bnr_selected_img_path: block.bnr_selected_img_path,
+			btm_bnr_blk_exps_cd: block.btm_bnr_blk_exps_cd,
+			btm_menu_tree_exps_yn: block.btm_menu_tree_exps_yn,
+			btm_oside_menu_sort_use_yn: block.btm_oside_menu_sort_use_yn,
+			conts_contin_play_yn: block.conts_contin_play_yn,
+			dist_fr_dt: block.dist_fr_dt,
+			dist_to_dt: block.dist_to_dt,
+			exps_mthd_cd: block.exps_mthd_cd,
+			gnb_typ_cd: block.gnb_typ_cd,
+			is_compound_prd: block.is_compound_prd,
+			kidsz_gnb_cd: block.kidsz_gnb_cd,
+			lim_lvl_yn: block.lim_lvl_yn,
+			menu_id: block.menu_id,
+			menu_nm: block.menu_nm,
+			menu_nm_exps_yn: block.menu_nm_exps_yn,
+			menu_off_img_path: block.menu_off_img_path,
+			menu_on_img_path: block.menu_on_img_path,
+			menu_path: block.menu_path,
+			oside_menu_sort_use_yn: block.oside_menu_sort_use_yn,
+			page_path: block.page_path,
+			prd_prc: block.prd_prc,
+			prd_prc_id: block.prd_prc_id,
+			prd_prc_vat: block.prd_prc_vat,
+			prd_typ_cd: block.prd_typ_cd,
+			prvw_play_cd: block.prvw_play_cd,
+			sale_prc: block.sale_prc,
+			sale_prc_vat: block.sale_prc_vat,
+			scn_mthd_cd: block.scn_mthd_cd
+		},
+		bnr_use_yn: gnb.bnr_use_yn,
+		btm_menu_tree_exps_yn: gnb.btm_menu_tree_exps_yn,
+		btm_oside_menu_sort_use_yn: gnb.btm_oside_menu_sort_use_yn,
+		dist_fr_dt: gnb.dist_fr_dt,
+		dist_to_dt: gnb.dist_to_dt,
+		gnb_typ_cd: gnb.gnb_typ_cd,
+		last_bnr_dist_to_dt: gnb.last_bnr_dist_to_dt,
+		lim_lvl_yn: gnb.lim_lvl_yn,
+		menu_exps_prop_cd: gnb.menu_exps_prop_cd,
+		menu_id: gnb.menu_id,
+		menu_nm: gnb.menu_nm,
+		page_path: gnb.page_path,
+		par_grp_menu_id: gnb.par_grp_menu_id
+	},
+	IF: vars.gnbinfo.IF,
+	media_agent_yn: vars.gnbinfo.media_agent_yn,
+	reason: vars.gnbinfo.reason,
+	request_time: vars.gnbinfo.request_time,
+	response_time: vars.gnbinfo.response_time,
+	result: vars.gnbinfo.result,
+	seg_info: vars.gnbinfo.seg_info,
+	total_count: vars.gnbinfo.total_count,
+	version: vars.gnbinfo.version,
+	vip_yn: vars.gnbinfo.vip_yn
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<graphql-router:serialize doc:name="Serialize" doc:id="496e3671-ebbc-4368-98f5-134c057bf366" config-ref="GraphQL_Router_Config" objectTypeName="Query" fieldName="iFEUXP030"/>
+	</flow>
+
+</mule>

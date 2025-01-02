@@ -1,0 +1,1469 @@
+schema {
+    query: Query
+}
+
+type Query {
+  getHomeAllData (
+    IF: String
+    stb_id: String
+    app_typ_cd: String
+    version: String
+    inspect_yn: String
+    menu_id: String
+    menu_stb_svc_id: String
+    scrbr_typ_cd: String
+    mac: String
+    ui_name: String
+    client_name: String
+    ver: String
+    response_format: String
+    page_no: String
+    page_count: String
+    view_count: String
+    view_type: String = "ALL"
+    eps_yn: String = "Y"
+  ): AllData
+  
+  getHomeAllData2 (
+    IF: String
+    stb_id: String
+    app_typ_cd: String
+    version: String
+    inspect_yn: String
+    menu_id: String
+    menu_stb_svc_id: String
+    scrbr_typ_cd: String
+    mac: String
+    ui_name: String
+    client_name: String
+    ver: String
+    response_format: String
+    page_no: String
+    page_count: String
+    view_count: String
+    view_type: String = "ALL"
+  ): AllData
+
+  getHomeMainData (
+    IF: String
+    stb_id: String
+    app_typ_cd: String
+    version: String
+    inspect_yn: String
+    menu_id: String
+    menu_stb_svc_id: String
+    scrbr_typ_cd: String
+    mac: String
+    ui_name: String
+    client_name: String
+    ver: String
+    response_format: String
+    page_no: String
+    page_count: String
+    view_count: String
+    view_type: String = "ALL"
+  ): HomeMainData
+
+  getBlockData (
+    IF: String
+    menu_id: String
+    menu_stb_svc_id: String
+    scrbr_typ_cd: String
+    stb_id: String
+    app_typ_cd: String
+    version: String
+    seg_id: String
+    page_no: String
+    page_count: String
+    view_count: String
+    view_type: String = "ALL"
+  ): SubBlockInfo
+
+
+  """
+  IF-PROF-015
+  """
+    
+  iFPROF015(
+    IF: String
+    stb_id: String
+  ): ProfileData
+
+  """
+   IF-EPS-401 : 보유 쿠폰 목록 조회
+
+  - 쿠폰함 진입 시 사용자의 보유(만료된 쿠폰 포함) 쿠폰을 모두 조회 한다.
+  - Optional Parameter인 상품ID와 콘텐츠ID를 전달 할 경우 상품 구매시 사용할 수 있는 쿠폰만 별도로 조회 가능하다.
+  """
+  iFEPS401(
+    if: String
+    stb_id: String
+    mac: String
+    ui_name: String
+    client_name: String
+    ver: String
+    response_format: String
+    ynSupportAgmt: String
+    page: String
+    count: String
+    order: String
+  ): CouponInfo
+
+  """
+   STB의 보유 신규B포인트 목록 조회
+
+  B포인트 이용내역에서 사용자에게 등록된 신규B포인트 목록(만료 포함)을 조회한다.
+  (옵셔널 파라미터인 'ynUsed' 생략 시 사용가능한 목록만 응답, ynUsed=Y인 경우 사용완료 또는 기간만 료된 목록 만 조회 된다.)
+  """
+  iFEPS751(
+    if: String
+    stb_id: String
+    mac: String
+    ui_name: String
+    client_name: String
+    ver: String
+    response_format: String
+    page: String
+    count: String
+  ): NewBpointsInfo
+
+  """
+   블록정보
+  - IF-EUXP-030 호출 이후 메뉴 탐색 또는 call_url을 통한 메뉴 이동 시 호출하며, blk_typ_cd: 20(메뉴 블록)일 때 호출한다.
+  - 호출한 메뉴의 1depth 하위 메뉴들(blocks)이 없으면 '결과 값 없음'을 응답한다.
+  - 빅배너정보, 블록정보, 특정 블록의 하위 메뉴정보를 결합하여 제공한다.
+  - 호출한 메뉴(menu), 호출한 메뉴의 1depth 하위 메뉴(blocks), 호출한 메뉴의 2depth 하위 메뉴(blocks> menus)까지 응답.
+  - 현재 날짜가 dist_fr_dt ~ dist_to_dt 사이값인 것을 불러오고
+  - SegmentId는 10개까지만 가지고 온다.
+  """
+  iFEUXP003(
+    IF: String
+    menu_id: String
+    menu_stb_svc_id: String
+    scrbr_typ_cd: String
+    stb_id: String
+    app_typ_cd: String
+  ): BlockInfo
+
+  """
+   이벤트 블럭
+
+  - blk_typ_cd: 70(이벤트 편성)일 때 호출
+  - 빅배너/이벤트 정보를 조회하여 제공한다.
+  - SegmentId는 10개까지만 가지고 온다
+  """
+  iFEUXP007(
+    menu_stb_svc_id: String
+    menu_id: String
+    IF: String
+    stb_id: String
+    seg_id: String
+    version: String
+    bnr_typ_cd: String
+    media_agent_use_yn: String
+    seg_info: String
+  ): EventBlockInfo
+
+  """
+   RACE 연동 그리드
+
+  - blk_typ_cd: 20(메뉴 블록)이고, scn_mthd_cd: 501(RACE추천메뉴(콘텐츠형)), 507(RACE추천메뉴(목록형)), 538(RACE추천메뉴(Refresh형)), 539(RACE추천메뉴(랭킹블록))일 때 호출
+  - 개인 사용자의 RACE그리드 정보를 조회하여 그 데이터를 기반으로 CMS의 그리드 정보를 결합하여 제공한다.
+  """
+  iFEUXP009(
+    menu_stb_svc_id: String
+    menu_id: String
+    bnr_typ_cd: String
+    seg_id: String
+    IF: String
+    stb_id: String
+    cw_call_id: String
+    session_id: String
+    track_id: String
+    section_id: String
+    type: String
+    rslu_typ_cd: String
+    inspect_yn: String
+    tid: String
+    sort_typ_cd: String
+    app_typ_cd: String
+    scrt_lvl_cd: String
+    profile_id: String
+    page_no: String
+    page_cnt: String
+    block_num: String
+    is_tseq_orgnz: String
+    poc_typ_cd: String
+    ppm_pref_exps_cd: String
+    media_typ_cd: String
+    psnl_prof_Id: String
+    gender: String
+    age: String
+    legalAge: String
+    svc_prop_cd: String
+    item: String
+    btv_profile_id: String
+    ott_ids: String
+    media_agent_use_yn: String
+    seg_info: String
+  ): RaceGridInfo
+
+  """
+   콘텐츠 그리드
+
+  - blk_typ_cd: 30(콘텐츠 편성)일 때 호출
+  - 콘텐츠 그리드 정보 및 이벤트 정보를 조회하여 제공한다.
+  """
+  iFEUXP024(
+    menu_stb_svc_id: String
+    menu_id: String
+    IF: String
+    stb_id: String
+    page_no: String
+    page_cnt: String
+    version: String
+    inspect_yn: String
+    seg_id: String
+    sort_typ_cd: String
+    bnr_typ_cd: String
+    app_typ_cd: String
+    scrt_lvl_cd: String
+    top_badge_prc_id: String
+    rep_epsd_typ_cd: String
+    ppm_pref_exps_cd: String
+    media_typ_cd: String
+    ott_ids: String
+    media_agent_use_yn: String
+    seg_info: String
+  ): ContentsGridInfo
+
+  """
+   GNB/블록 전체메뉴
+  - 홈 진입 시 GNB 목록을 받아올 때 호출
+  - 빅배너정보, 블록정보, 특정 블록의 하위 메뉴정보를 결합하여 제공한다.
+  - 현재 날짜가 dist_fr_dt ~ dist_to_dt 사이값인 것을 불러오고
+  - SegmentId는 10개까지만 가지고 온다
+  """
+  iFEUXP030(
+    menu_stb_svc_id: String
+    IF: String
+    stb_id: String
+    seg_id: String
+    version: String
+    inspect_yn: String
+    app_typ_cd: String
+    camera_use_yn: String
+  ): GnbInfo
+  
+    getSomeData (race_yn: String = "Y" ): PerformanceData
+    getSomeData2 (race_yn: String = "Y" ): PerformanceDataItem
+    getSomeData3 (race_yn: String = "Y" ): PerformanceDataItem2
+  
+}
+
+type AllData {
+  mule_reason: String
+  mule_request_time: String
+  mule_response_time: String
+  mule_result: String
+  profile: ProfileData
+  coupon: CouponInfo
+  point: NewBpointsInfo
+  gnbInfo: GnbInfo
+  blocks: [SubBlockInfo]
+}
+type HomeMainData {
+  mule_reason: String
+  mule_request_time: String
+  mule_response_time: String
+  mule_result: String
+  profile: ProfileData
+  coupon: CouponInfo
+  point: NewBpointsInfo
+  gnbInfo: GnbInfo
+}
+
+
+type SubBlockInfo {
+  mule_reason: String
+  mule_request_time: String
+  mule_response_time: String
+  mule_result: String
+  banner_count: Int
+  banners: [BannersListItem]
+  banner_version: String
+  block_count: Int
+  blocks: [Blocks6ListItem]
+  block_version: String
+  IF: String
+  menu: Menu
+  menu_id: String
+  menu_nm: String
+  reason: String
+  request_time: String
+  response_time: String
+  result: String
+  subBlocks: [BlockInfo]
+  eventBlocks: [EventBlockInfo]
+  raceGrids: [SubRaceGridInfo]
+  contentsGrids: [SubContentsGridInfo]
+}
+
+type SubRaceGridInfo {
+  banners: [Banners2ListItem]
+  grid: [GridListItem]
+  IF: String
+  reason: String
+  related_call_id: String
+  request_time: String
+  response_time: String
+  result: String
+  status_code: String
+  total_banner_count: Int
+  total_count: Int
+  menu_id: String
+  menu_nm: String
+}
+
+type SubContentsGridInfo {
+  banners: [Banners2ListItem]
+  contents: [ContentsListItem]
+  IF: String
+  lib_fir_reg_dt: String
+  menu_id: String
+  menu_nm: String
+  reason: String
+  request_time: String
+  response_time: String
+  result: String
+  total_banner_count: Int
+  total_content_count: Int
+  version: String
+}
+
+
+type PerformanceData {
+	NATIVE_GNB: GnbInfo
+	VCSANDPNV542_GNB: GnbInfo
+	Race001: Race001Data
+	RaceLastWatch: RaceLastWatchData
+	RacePersonalGrid1: RacePersonalGridData
+	RacePersonalGrid2: RacePersonalGridData
+}
+
+type PerformanceDataItem {
+	NATIVE_GNB: GnbInfo
+	VCSANDPNV542_GNB: GnbInfo
+	Race001: Race001Data
+	RaceLastWatch: RaceLastWatchData
+	RacePersonalGrid1: RacePersonalGridData
+	RacePersonalGrid2: RacePersonalGridData
+}
+
+type PerformanceDataItem2 {
+	NATIVE_GNB: GnbInfo
+	RaceLastWatch: RaceLastWatchData
+	RacePersonalGrid1: RacePersonalGridData
+}
+
+type Profile {
+  insert_dt: String
+  lock_password_yn: String
+  lock_use_yn: String
+  pair_count: Float
+  profile_id: String
+  profile_img_dim_path: String
+  profile_img_path: String
+  profile_img_server: String
+  profile_img_type: String
+  profile_name: String
+  purc_auth_yn: String
+  reg_device_cd: String
+  self_auth_yn: String
+  stb_active_dt: String
+  stb_active_yn: String
+  stb_default_yn: String
+  stb_id_list: [String]
+  tst_reg_yn: String
+  update_dt: String
+}
+
+type ProfileData {
+  elapsed_time: Int
+  IF: String
+  profile_id: String  
+  profile: Profile
+  reason: String
+  request_id: String
+  response_format: String
+  result: String
+  stb_id: String
+}
+
+type BgImgs2ListItem {
+  img_path: String
+}
+
+type BgImgsListItem {
+  img_path: String
+}
+
+type Blocks2ListItem {
+  asis_prd_typ_cd: String
+  blk_typ_cd: String
+  blocks: [Blocks3ListItem]
+  bnr_exps_mthd_cd: String
+  bnr_off_img_path: String
+  btm_bnr_blk_exps_cd: String
+  btm_menu_tree_exps_yn: String
+  btm_oside_menu_sort_use_yn: String
+  conts_contin_play_yn: String
+  cw_call_id_val: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  exps_mthd_cd: String
+  gnb_typ_cd: String
+  is_compound_prd: String
+  kidsz_gnb_cd: String
+  lim_lvl_yn: String
+  menu_expl: String
+  menu_exps_prop_cd: String
+  menu_id: String
+  menu_nm: String
+  menu_nm_exps_yn: String
+  menu_path: String
+  oside_menu_sort_use_yn: String
+  page_path: String
+  prd_prc: Int
+  prd_prc_id: String
+  prd_prc_vat: Int
+  prd_typ_cd: String
+  prvw_play_cd: String
+  pst_exps_typ_cd: String
+  sale_prc: Int
+  sale_prc_vat: Int
+  scn_mthd_cd: String
+  svc_prop_cd: String
+}
+
+type Blocks3ListItem {
+  asis_prd_typ_cd: String
+  blk_typ_cd: String
+  blocks: [Blocks4ListItem]
+  bnr_exps_mthd_cd: String
+  bnr_off_img_path: String
+  btm_bnr_blk_exps_cd: String
+  btm_menu_tree_exps_yn: String
+  btm_oside_menu_sort_use_yn: String
+  call_typ_cd: String
+  call_url: String
+  chrtr_menu_cat_cd: String
+  conts_contin_play_yn: String
+  cw_call_id_val: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  evt_use_yn: String
+  exps_mthd_cd: String
+  exps_rslu_cd: String
+  gnb_typ_cd: String
+  is_compound_prd: String
+  kidsz_gnb_cd: String
+  last_evt_dist_to_dt: String
+  lim_lvl_yn: String
+  menu_expl: String
+  menu_exps_prop_cd: String
+  menu_id: String
+  menu_nm: String
+  menu_nm_exps_yn: String
+  menu_path: String
+  oside_menu_sort_use_yn: String
+  page_path: String
+  ppm_join_off_img_path: String
+  prd_prc: Int
+  prd_prc_id: String
+  prd_prc_vat: Int
+  prd_typ_cd: String
+  prvw_play_cd: String
+  pst_exps_typ_cd: String
+  sale_prc: Int
+  sale_prc_vat: Int
+  scn_mthd_cd: String
+  svc_prop_cd: String
+}
+
+type Blocks4ListItem {
+  bg_imgs: [BgImgsListItem]
+  blk_typ_cd: String
+  blocks: [Blocks5ListItem]
+  bnr_exps_mthd_cd: String
+  bnr_off_img_path: String
+  bnr_on_img_path: String
+  bnr_preview_img_path: String
+  bnr_selected_img_path: String
+  btm_bnr_blk_exps_cd: String
+  btm_menu_tree_exps_yn: String
+  btm_oside_menu_sort_use_yn: String
+  call_typ_cd: String
+  call_url: String
+  chrtr_menu_cat_cd: String
+  conts_contin_play_yn: String
+  cw_call_id_val: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  exps_mthd_cd: String
+  gnb_typ_cd: String
+  kidsz_gnb_cd: String
+  lim_lvl_yn: String
+  menu_expl: String
+  menu_exps_prop_cd: String
+  menu_id: String
+  menu_nm: String
+  menu_nm_exps_yn: String
+  menu_path: String
+  oside_menu_sort_use_yn: String
+  page_path: String
+  prvw_play_cd: String
+  pst_exps_typ_cd: String
+  scn_mthd_cd: String
+  svc_prop_cd: String
+}
+
+type Blocks5ListItem {
+  blk_typ_cd: String
+  bnr_preview_img_path: String
+  btm_menu_tree_exps_yn: String
+  chrtr_menu_cat_cd: String
+  conts_contin_play_yn: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  exps_mthd_cd: String
+  gnb_typ_cd: String
+  kidsz_gnb_cd: String
+  lim_lvl_yn: String
+  menu_id: String
+  menu_nm: String
+  menu_nm_exps_yn: String
+  menu_path: String
+  oside_menu_sort_use_yn: String
+  page_path: String
+  prvw_play_cd: String
+  pst_exps_typ_cd: String
+}
+
+type BlocksListItem {
+  asis_prd_typ_cd: String
+  bg_imgs: [BgImgs2ListItem]
+  blk_typ_cd: String
+  blocks: [Blocks2ListItem]
+  bnr_exps_mthd_cd: String
+  bnr_off_img_path: String
+  bnr_on_img_path: String
+  bnr_selected_img_path: String
+  btm_bnr_blk_exps_cd: String
+  btm_menu_tree_exps_yn: String
+  btm_oside_menu_sort_use_yn: String
+  conts_contin_play_yn: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  exps_mthd_cd: String
+  gnb_typ_cd: String
+  is_compound_prd: String
+  kidsz_gnb_cd: String
+  lim_lvl_yn: String
+  menu_id: String
+  menu_nm: String
+  menu_nm_exps_yn: String
+  menu_off_img_path: String
+  menu_on_img_path: String
+  menu_path: String
+  oside_menu_sort_use_yn: String
+  page_path: String
+  prd_prc: Int
+  prd_prc_id: String
+  prd_prc_vat: Int
+  prd_typ_cd: String
+  prvw_play_cd: String
+  sale_prc: Int
+  sale_prc_vat: Int
+  scn_mthd_cd: String
+}
+
+type GnbInfo {
+  gnbs: [GnbsListItem]
+  IF: String
+  media_agent_yn: String
+  reason: String
+  request_time: String
+  response_time: String
+  result: String
+  seg_info: String
+  total_count: Int
+  version: String
+  vip_yn: String
+}
+
+type GnbsListItem {
+  blocks: [BlocksListItem]
+  bnr_use_yn: String
+  btm_menu_tree_exps_yn: String
+  btm_oside_menu_sort_use_yn: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  gnb_typ_cd: String
+  last_bnr_dist_to_dt: String
+  lim_lvl_yn: String
+  menu_exps_prop_cd: String
+  menu_id: String
+  menu_nm: String
+  page_path: String
+  par_grp_menu_id: String
+}
+
+type CouponInfo {
+  count: Int
+  coupons: Coupons
+  expireCount: Int
+  if: String
+  page: Int
+  reason: String
+  response_format: String
+  result: String
+  svc_name: String
+  totalCount: Int
+  ui_name: String
+  usableCount: Int
+  ver: String
+}
+
+type CouponListItem {
+  applyEndDate: String
+  confirmDate: String
+  couponNo: String
+  couponType: String
+  detailInfomation: String
+  discountType: String
+  discountValue: Int
+  expireMessage: String
+  isAdultPpm: Boolean
+  landingId: String
+  landingName: String
+  landingProductType: String
+  landingType: String
+  masterNo: String
+  ppmDiscountPeriod: Int
+  title: String
+  usedDate: String
+}
+
+type Coupons {
+  coupon: [CouponListItem]
+}
+
+type NewBpointListItem {
+  balance: Int
+  confirmDate: String
+  expireMessage: String
+  masterNo: String
+  newBpointNo: String
+  title: String
+  useRate: Int
+}
+
+type NewBpoints {
+  newBpoint: [NewBpointListItem]
+}
+
+type NewBpointsInfo {
+  count: Int
+  expireNewBpoint: Int
+  if: String
+  newBpoints: NewBpoints
+  page: Int
+  reason: String
+  response_format: String
+  result: String
+  svc_name: String
+  totalCount: Int
+  ui_name: String
+  usableNewBpoint: Int
+  ver: String
+}
+
+type BannersListItem {
+  bbnr_exps_mthd_cd: String
+  bnr_det_typ_cd: String
+  bnr_epsd_rslu_id: String
+  bnr_expl: String
+  bnr_left_img_path: String
+  bnr_right_img_path: String
+  bss_img_path: String
+  call_typ_cd: String
+  call_url: String
+  cmpgn_apl_fr_dt: String
+  cmpgn_apl_to_dt: String
+  cmpgn_fr_dt: String
+  cmpgn_id: String
+  cmpgn_itlk_typ_cd: String
+  cmpgn_nm: String
+  cmpgn_to_dt: String
+  cnts_typ_cd: String
+  cw_call_id_val: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  epsd_id: String
+  evt_exps_loc_cd: String
+  exps_rslu_cd: String
+  ext_img_path: String
+  gnb_typ_cd: String
+  guide_phrs_nm: String
+  lim_lvl_yn: String
+  menu_expl: String
+  menu_exps_prop_cd: String
+  menu_id: String
+  menu_nm: String
+  monthly_free_bnr_left_img_path: String
+  monthly_free_bnr_right_img_path: String
+  page_path: String
+  par_menu_path: String
+  prd_id: String
+  prd_nm: String
+  prd_prc: String
+  prd_prc_id: String
+  prd_prc_vat: String
+  prd_typ_cd: String
+  sale_prc: String
+  sale_prc_vat: String
+  scn_mthd_cd: String
+  shcut_epsd_id: String
+  shcut_menu_id: String
+  shcut_sris_id: String
+  svc_prop_cd: String
+  synon_typ_cd: String
+  vas_id: String
+  vas_itm_id: String
+  vas_svc_id: String
+}
+
+type BlockInfo {
+  banner_count: Int
+  banners: [BannersListItem]
+  banner_version: String
+  block_count: Int
+  blocks: [Blocks6ListItem]
+  block_version: String
+  IF: String
+  menu: Menu
+  menu_id: String
+  menu_nm: String
+  reason: String
+  request_time: String
+  response_time: String
+  result: String
+}
+
+type Blocks6ListItem {
+  asis_prd_typ_cd: String
+  blk_typ_cd: String
+  bnr_det_typ_cd: String
+  bnr_exps_mthd_cd: String
+  bnr_off_img_path: String
+  bnr_on_img_path: String
+  bnr_preview_img_path: String
+  bnr_selected_img_path: String
+  bnr_use_yn: String
+  btm_bnr_blk_exps_cd: String
+  btm_oside_menu_sort_use_yn: String
+  call_typ_cd: String
+  call_url: String
+  chrtr_menu_cat_cd: String
+  cmpgn_apl_fr_dt: String
+  cmpgn_apl_to_dt: String
+  cmpgn_fr_dt: String
+  cmpgn_id: String
+  cmpgn_itlk_typ_cd: String
+  cmpgn_nm: String
+  cmpgn_to_dt: String
+  conts_contin_play_yn: String
+  cw_call_id_val: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  evt_use_yn: String
+  exps_mthd_cd: String
+  exps_rslu_cd: String
+  gnb_typ_cd: String
+  is_compound_prd: String
+  is_leaf: String
+  last_bnr_dist_to_dt: String
+  last_evt_dist_to_dt: String
+  lim_lvl_yn: String
+  menu_expl: String
+  menu_exps_prop_cd: String
+  menu_flag_off_img_path: String
+  menu_flag_on_img_path: String
+  menu_flag_selected_img_path: String
+  menu_id: String
+  menu_nm: String
+  menu_nm_exps_yn: String
+  menu_path: String
+  menus: [MenusListItem]
+  monthly_bnr_img_fg_cd: String
+  monthly_free_bnr_full_img_path: String
+  monthly_join_bnr_full_img_path: String
+  oside_menu_sort_use_yn: String
+  page_path: String
+  player_icon_img_path: String
+  ppm_pref_exps_cd: String
+  prd_prc: String
+  prd_prc_id: String
+  prd_prc_vat: String
+  prd_typ_cd: String
+  prvw_play_cd: String
+  pst_exps_typ_cd: String
+  sale_prc: String
+  sale_prc_vat: String
+  scn_mthd_cd: String
+  shortcutEpisodeId: String
+  srch_keywrd_nm: String
+  srch_typ_cd: String
+  svc_prop_cd: String
+}
+
+type Menu {
+  asis_prd_typ_cd: String
+  blk_typ_cd: String
+  bnr_det_typ_cd: String
+  bnr_expl: String
+  bnr_exps_mthd_cd: String
+  bnr_off_img_path: String
+  bnr_on_img_path: String
+  bnr_preview_img_path: String
+  bnr_selected_img_path: String
+  btm_bnr_blk_exps_cd: String
+  btm_oside_menu_sort_use_yn: String
+  call_typ_cd: String
+  call_url: String
+  cmpgn_apl_fr_dt: String
+  cmpgn_apl_to_dt: String
+  cmpgn_fr_dt: String
+  cmpgn_id: String
+  cmpgn_itlk_typ_cd: String
+  cmpgn_nm: String
+  cmpgn_to_dt: String
+  cnts_typ_cd: String
+  cw_call_id_val: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  evt_exps_loc_cd: String
+  exps_rslu_cd: String
+  gnb_typ_cd: String
+  guide_imgs: [GuideImageItem]
+  img_dist_yn: String
+  is_compound_prd: String
+  lim_lvl_yn: String
+  menu_exps_prop_cd: String
+  menu_flag_off_img_path: String
+  menu_flag_on_img_path: String
+  menu_flag_selected_img_path: String
+  menu_id: String
+  menu_nm: String
+  menu_path: String
+  mmtf_home_exps_yn: String
+  monthly_bnr_img_fg_cd: String
+  monthly_bnr_left_img_path: String
+  monthly_bnr_right_img_path: String
+  monthly_free_bnr_full_img_path: String
+  monthly_free_bnr_left_img_path: String
+  monthly_free_bnr_right_img_path: String
+  monthly_join_bnr_full_img_path: String
+  monthly_join_bnr_left_img_path: String
+  monthly_join_bnr_right_img_path: String
+  oside_menu_sort_use_yn: String
+  page_path: String
+  player_icon_img_path: String
+  ppm_join_off_img_path: String
+  ppm_join_on_img_path: String
+  ppm_pref_exps_cd: String
+  prd_prc: String
+  prd_prc_id: String
+  prd_prc_vat: String
+  prd_typ_cd: String
+  prd_watch_day_count: String
+  prd_watch_day_type: String
+  prd_watch_end_datetime: String
+  prd_watch_method: String
+  prd_watch_start_datetime: String
+  pst_exps_typ_cd: String
+  sale_prc: String
+  sale_prc_vat: String
+  scn_mthd_cd: String
+  shcut_epsd_id: String
+  shcut_menu_id: String
+  shcut_sris_id: String
+  srch_keywrd_nm: String
+  srch_typ_cd: String
+  svc_prop_cd: String
+  synon_typ_cd: String
+  uguid_epsd_rslu_id: String
+  uguid_expl: String
+  uguid_title: String
+  uguid_typ_cd: String
+  vas_id: String
+  vas_itm_id: String
+  vas_svc_id: String
+}
+
+type MenusListItem {
+  asis_prd_typ_cd: String
+  blk_typ_cd: String
+  bnr_det_typ_cd: String
+  bnr_expl: String
+  bnr_exps_mthd_cd: String
+  bnr_off_img_path: String
+  bnr_on_img_path: String
+  bnr_preview_img_path: String
+  bnr_selected_img_path: String
+  btm_bnr_blk_exps_cd: String
+  btm_oside_menu_sort_use_yn: String
+  call_typ_cd: String
+  call_url: String
+  cmpgn_apl_fr_dt: String
+  cmpgn_apl_to_dt: String
+  cmpgn_fr_dt: String
+  cmpgn_id: String
+  cmpgn_itlk_typ_cd: String
+  cmpgn_nm: String
+  cmpgn_to_dt: String
+  cnts_typ_cd: String
+  cw_call_id_val: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  evt_exps_loc_cd: String
+  exps_rslu_cd: String
+  gnb_typ_cd: String
+  guide_imgs: [GuideImageItem]
+  img_dist_yn: String
+  is_compound_prd: String
+  lim_lvl_yn: String
+  menu_exps_prop_cd: String
+  menu_flag_off_img_path: String
+  menu_flag_on_img_path: String
+  menu_flag_selected_img_path: String
+  menu_id: String
+  menu_nm: String
+  menu_off_img_path: String
+  menu_path: String
+  mmtf_home_exps_yn: String
+  monthly_bnr_img_fg_cd: String
+  monthly_bnr_left_img_path: String
+  monthly_bnr_right_img_path: String
+  monthly_free_bnr_full_img_path: String
+  monthly_free_bnr_left_img_path: String
+  monthly_free_bnr_right_img_path: String
+  monthly_join_bnr_full_img_path: String
+  monthly_join_bnr_left_img_path: String
+  monthly_join_bnr_right_img_path: String
+  oside_menu_sort_use_yn: String
+  page_path: String
+  playerIcon_img_path: String
+  ppm_join_off_img_path: String
+  ppm_join_on_img_path: String
+  ppm_pref_exps_cd: String
+  prd_prc: String
+  prd_prc_id: String
+  prd_prc_vat: String
+  prd_typ_cd: String
+  prd_watch_day_count: String
+  prd_watch_day_type: String
+  prd_watch_end_datetime: String
+  prd_watch_method: String
+  prd_watch_start_datetime: String
+  prvw_play_cd: String
+  pst_exps_typ_cd: String
+  sale_prc: String
+  sale_prc_vat: String
+  scn_mthd_cd: String
+  shcut_epsd_id: String
+  shcut_menu_id: String
+  shcut_sris_id: String
+  srch_keywrd_nm: String
+  srch_typ_cd: String
+  svc_prop_cd: String
+  synon_typ_cd: String
+  uguid_epsd_rslu_id: String
+  uguid_expl: String
+  uguid_title: String
+  uguid_typ_cd: String
+  vas_id: String
+  vas_itm_id: String
+  vas_svc_id: String
+}
+
+type Banners2ListItem {
+  asis_prd_typ_cd: String
+  bbnr_exps_mthd_cd: String
+  blk_typ_cd: String
+  bnr_det_typ_cd: String
+  bnr_epsd_rslu_id: String
+  bnr_expl: String
+  bnr_exps_mthd_cd: String
+  bnr_full_page_img_path: String
+  bnr_img_btm_expl: String
+  bnr_img_btm_expl2: String
+  bnr_img_btm_expl_typ_cd: String
+  bnr_img_btm_expl_typ_cd2: String
+  bnr_img_expl: String
+  bnr_img_expl_typ_cd: String
+  bnr_imgs: [BnrImgListItem]
+  bnr_left_img_path: String
+  bnr_off_img_path: String
+  bnr_on_img_path: String
+  bnr_right_img_path: String
+  bnr_typ_cd: String
+  call_typ_cd: String
+  call_url: String
+  cmpgn_apl_fr_dt: String
+  cmpgn_apl_to_dt: String
+  cmpgn_fr_dt: String
+  cmpgn_id: String
+  cmpgn_itlk_typ_cd: String
+  cmpgn_nm: String
+  cmpgn_to_dt: String
+  cnts_typ_cd: String
+  cw_call_id_val: String
+  dist_fr_dt: String
+  dist_to_dt: String
+  epsd_id: String
+  evt_exps_loc_cd: String
+  exps_rslu_cd: String
+  gnb_typ_cd: String
+  guide_imgs: [GuideImageItem]
+  img_bagr_color_code: String
+  img_dist_yn: String
+  is_compound_prd: String
+  lim_lvl_yn: String
+  logoImgPath: String
+  menu_exps_prop_cd: String
+  menu_id: String
+  menu_nm: String
+  mmtf_home_exps_yn: String
+  page_path: String
+  prd_prc: Int
+  prd_prc_id: String
+  prd_prc_vat: Int
+  prd_typ_cd: String
+  sale_prc: Int
+  sale_prc_vat: Int
+  scn_mthd_cd: String
+  shcut_epsd_id: String
+  shcut_menu_id: String
+  shcut_sris_id: String
+  svc_prop_cd: String
+  synon_typ_cd: String
+  uguid_epsd_rslu_id: String
+  uguid_expl: String
+  uguid_title: String
+  uguid_typ_cd: String
+  vas_id: String
+  vas_itm_id: String
+  vas_svc_id: String
+  width_focus_off_path: String
+}
+type GuideImageItem {
+	img_path: String
+}
+type BnrImgListItem {
+	id: String
+	seq: Float
+	img_path: String
+	type: String
+}
+
+type EventBlockInfo {
+  banners: [Banners2ListItem]
+  IF: String
+  menu_id: String
+  reason: String
+  request_time: String
+  response_time: String
+  result: String
+  total_count: Int
+  version: String
+}
+
+type BlockListItem {
+  adlt_lvl_cd: String
+  badge_typ_nm: String
+  bas_badge_img_path: String
+  bf_prd_prc: Int
+  bf_prd_prc_vat: Int
+  bf_sale_prc: Int
+  bf_sale_prc_vat: Int
+  bg_img_path: String
+  brcast_tseq_nm: String
+  cacbro_yn: String
+  dark_img_yn: String
+  dsc_typ_cd: String
+  episode_title: String
+  epsd_dist_fir_svc_dt: String
+  epsd_id: String
+  epsd_lag_capt_typ_cd: String
+  epsd_poster_filename_h: String
+  epsd_rslu_id: String
+  first_epsd_id: String
+  fstry_draw_exps_yn: String
+  fstry_fam_role_exps_yn: String
+  fstry_role_plyg_exps_yn: String
+  fstry_spch_exps_yn: String
+  icon_exps_fr_dt: String
+  icon_exps_to_dt: String
+  icon_url: String
+  i_img_cd: String
+  kids_yn: String
+  meta_sub_typ_cd: String
+  meta_typ_cd: String
+  otts: [OttsListItem]
+  play_tms_val: String
+  playz_prd_prc_fr_dt: String
+  playz_prd_prc_to_dt: String
+  poster_filename_h: String
+  poster_filename_v: String
+  ppm_grid_icon_img_path: String
+  ppm_prd_prc_id: String
+  ppv_uabl_yn: String
+  prd_info: [PrdInfoListItem]
+  prd_prc: Int
+  prd_prc_id: String
+  prd_prc_vat: Int
+  quiz_yn: String
+  race_recommend_yn: String
+  recommend_comment: String
+  rslu_typ_cd: String
+  rsv_orgnz_yn: String
+  sale_prc: Int
+  sale_prc_vat: Int
+  smr_yn: String
+  sort_seq: Int
+  sris_cmpt_yn: String
+  sris_dist_fir_svc_dt: String
+  sris_id: String
+  sris_lag_capt_typ_cd: String
+  svc_fr_dt: String
+  svc_to_dt: String
+  svc_typ_cd: String
+  synon_typ_cd: String
+  thumbnail_filename_h: String
+  title: String
+  tmdb_pnt_info: TmdbPntInfo
+  track_id: String
+  tseq_orgnz_yn: String
+  user_badge_img_path: String
+  user_badge_wdt_img_path: String
+  vod_dp_yn: String
+  vod_svc_yn: String
+  wat_lvl_cd: String
+}
+
+type GridListItem {
+  block: [BlockListItem]
+  block_cnt: Int
+  block_preview_info: String
+  btrack_id: String
+  cw_call_id: String
+  sectionId: String
+  session_id: String
+  sub_title: String
+}
+
+type OttProductsListItem {
+  ott_prd_typ_cd: String
+  ott_sale_prc: Int
+}
+
+type OttsListItem {
+  ott_id: String
+  ott_products: [OttProductsListItem]
+  ott_typ_cd: String
+}
+
+type PrdInfoListItem {
+  prd_prc_id: String
+  prd_typ_cd: String
+}
+
+type RaceGridInfo {
+  banners: [Banners2ListItem]
+  grid: [GridListItem]
+  IF: String
+  reason: String
+  related_call_id: String
+  request_time: String
+  response_time: String
+  result: String
+  status_code: String
+  total_banner_count: Int
+  total_count: Int
+}
+
+type TmdbPntInfo {
+  tmdb_pnt: Float
+  tmdb_pnt_user_ncnt: Int
+}
+
+type ContentsGridInfo {
+  banners: [Banners2ListItem]
+  contents: [ContentsListItem]
+  IF: String
+  lib_fir_reg_dt: String
+  menu_id: String
+  reason: String
+  request_time: String
+  response_time: String
+  result: String
+  total_banner_count: Int
+  total_content_count: Int
+  version: String
+}
+
+type ContentsListItem {
+  adlt_lvl_cd: String
+  badge_typ_nm: String
+  bas_badge_img_path: String
+  bg_img_path: String
+  brcast_tseq_nm: String
+  cacbro_yn: String
+  dark_img_yn: String
+  dsc_typ_cd: String
+  epsd_dist_fir_svc_dt: String
+  epsd_id: String
+  epsd_rslu_id: String
+  fir_reg_dt: String
+  first_epsd_id: String
+  fstry_draw_exps_yn: String
+  fstry_fam_role_exps_yn: String
+  fstry_role_plyg_exps_yn: String
+  fstry_spch_exps_yn: String
+  gstn_yn: String
+  icon_exps_fr_dt: String
+  icon_exps_to_dt: String
+  i_img_cd: String
+  keywrd_val: String
+  kids_yn: String
+  meta_sub_typ_cd: String
+  meta_typ_cd: String
+  otts: [OttsListItem]
+  play_tms_hms: String
+  playz_prd_prc_fr_dt: String
+  playz_prd_prc_to_dt: String
+  poster_filename_h: String
+  poster_filename_v: String
+  ppm_grid_icon_img_path: String
+  ppm_prd_prc_id: String
+  ppv_uabl_yn: String
+  prd_info: [PrdInfoListItem]
+  prd_prc: Int
+  prd_prc_id: String
+  prd_prc_vat: Int
+  quiz_yn: String
+  rslu_typ_cd: String
+  rsv_orgnz_yn: String
+  sale_prc: Int
+  sale_prc_vat: Int
+  smr_yn: String
+  sort_seq: Int
+  sris_cmpt_yn: String
+  sris_dist_fir_svc_dt: String
+  sris_id: String
+  svc_fr_dt: String
+  svc_to_dt: String
+  svc_typ_cd: String
+  synon_typ_cd: String
+  title: String
+  tmdb_pnt_info: TmdbPntInfo
+  tseq_orgnz_yn: String
+  user_badge_img_path: String
+  user_badge_wdt_img_path: String
+  vod_svc_yn: String
+  wat_lvl_cd: String
+}
+
+type Race001Data {
+  referenceCount: Int
+  referenceList: [String]
+}
+
+type RaceLastWatchData {
+  grid: [RaceLastGridListItem]
+  IF: String
+  reason: String
+  request_time: String
+  response_time: String
+  result: String
+  status_code: String
+}
+
+
+type RaceLastGridListItem {
+  block: [RaceLastBlockListItem]
+  btrack_id: String
+  cw_call_Id: String
+  dvc_typ_cd: String
+  page_no: String
+  page_tot: String
+  profile_id: String
+  profile_typ_cd: String
+  section_id: String
+  session_id: String
+  sub_title: String
+  watch_no: String
+  watch_tot: String
+  yn_ppm: String
+}
+
+type RaceLastBlockListItem {
+  adult: String
+  catchup: String
+  dist_svc_dt: String
+  epsd_id: String
+  epsd_rslu_id: String
+  genre_cd: String
+  level: String
+  material_cd: String
+  prod_id: String
+  reg_date: String
+  running_time: String
+  series_no: String
+  sris_id: String
+  thumbnail: String
+  title: String
+  trans_type: String
+  update_dt: String
+  watch_rt: String
+  watch_share_dvc_typ_cd: String
+  watch_share_id: String
+  watch_share_img: String
+  watch_share_nm: String
+  watch_share_profile_typ_cd: String
+  watch_share_yn: String
+  watch_time: String
+  yn_kzone: String
+  yn_series: String
+}
+
+type RacePersonalGridData {
+  grid: [RacePersonalGridListItem]
+  IF: String
+  reason: String
+  request_time: String
+  response_time: String
+  result: String
+  status_code: String
+  total_count: Int
+}
+
+type RacePersonalGridListItem {
+  block: [RacePersonalGridBlockListItem]
+  block_cnt: Int
+  block_preview_info: String
+  btrack_id: String
+  race_call_id: String
+  section_id: String
+  session_id: String
+  sub_title: String
+}
+
+type RacePersonalGridBlockListItem {
+  actor_name: String
+  adlt_lvl_cd: String
+  badge_typ_nm: String
+  bas_badge_img_path: String
+  bf_prd_prc: Int
+  bf_prd_prc_vat: Int
+  bf_sale_prc: Int
+  bf_sale_prc_vat: Int
+  bg_img_path: String
+  brand_name: String
+  brcast_tseq_nm: String
+  broad_seq: Int
+  cacbro_yn: String
+  channel_name: String
+  channel_no: Int
+  dark_img_yn: String
+  dsc_typ_cd: String
+  episode_title: String
+  epsd_dist_fir_svc_dt: String
+  epsd_id: String
+  epsd_lag_capt_typ_cd: String
+  epsd_poster_filename_h: String
+  epsd_rslu_id: String
+  first_epsd_id: String
+  fstry_draw_exps_yn: String
+  fstry_fam_role_exps_yn: String
+  fstry_role_plyg_exps_yn: String
+  fstry_spch_exps_yn: String
+  icon_exps_fr_dt: String
+  icon_exps_to_dt: String
+  icon_url: String
+  id: String
+  id_svc: Int
+  i_img_cd: String
+  kids_yn: String
+  meta_sub_typ_cd: String
+  meta_typ_cd: String
+  otts: [OttsListItem]
+  play_tms_val: String
+  playz_prod_prc_fr_dt: String
+  playz_prod_prc_to_dt: String
+  position: Int
+  poster_filename_h: String
+  poster_filename_v: String
+  ppm_grid_icon_img_path: String
+  ppm_prod_prc_id: String
+  ppv_uabl_yn: String
+  prd_info: [PrdInfoListItem]
+  prd_prc: Int
+  prd_prc_id: String
+  prd_prc_vat: Int
+  product_img: String
+  product_name: String
+  quiz_yn: String
+  race_recommend_yn: String
+  recommend_comment: String
+  rslu_typ_cd: String
+  rsv_orgnz_yn: String
+  sale_prc: Int
+  sale_prc_vat: Int
+  shopping_infos: [ShoppingInfosListItem]
+  smr_yn: String
+  sort_seq: Int
+  sris_cmpt_yn: String
+  sris_dist_fir_svc_dt: String
+  sris_id: String
+  sris_lag_capt_typ_cd: String
+  svc_fr_dt: String
+  svc_to_dt: String
+  svc_typ_cd: String
+  synon_typ_cd: String
+  thumbnail_filename_h: String
+  title: String
+  tmdb_pnt_info: TmdbPntInfo
+  tseq_orgnz_yn: String
+  type: String
+  user_badge_img_path: String
+  user_badge_wdt_img_path: String
+  vod_dp_yn: String
+  vod_svc_yn: String
+  wat_lvl_cd: String
+}
+
+type ShoppingInfosListItem {
+  icon_url: String
+  mobile_sales_url: String
+  price: String
+  sales_url: String
+}
+
+
+
+
+
+
